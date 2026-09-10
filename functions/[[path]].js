@@ -49,7 +49,6 @@ export async function onRequest(context) {
         }
       }
 
-      // Listar enlaces CON conteo de clics desde Analytics Engine
       if (action === "links" && request.method === "GET") {
         const { results } = await env.DB.prepare(
           "SELECT slug, type, target_url, splat, password, expires_at, created_at FROM links ORDER BY created_at DESC"
@@ -122,7 +121,7 @@ export async function onRequest(context) {
         const messages = [
           {
             role: "system",
-            content: `You generate short ASCII slugs for URLs. Rules: only lowercase letters a-z, numbers 0-9 and underscores _, between ${minLen} and ${slugLength} characters, no spaces. Respond ONLY with the slug, no quotes, no formatting, no explanations.`
+            content: `You are a URL slug generator. Given content, output ONE slug.\n\nSTRICT RULES:\n- Do NOT repeat or echo the input\n- Do NOT include the domain name in the slug\n- Output ONLY lowercase ASCII letters (a-z), numbers (0-9) and underscores (_)\n- Length between ${minLen} and ${slugLength} characters\n- No spaces, no accents, no special characters, no quotes, no punctuation\n- If the content is about a well-known brand or topic, use its common English name\n- Respond ONLY with the slug, nothing else. No explanations, no greetings, no markdown.\n\nExample:\nInput: "Title: GitHub - Build software better, together"\nOutput: github`
           },
           { role: "user", content: contextText.slice(0, 400) || targetUrl }
         ];
@@ -151,7 +150,14 @@ export async function onRequest(context) {
           .replace(/_+/g, "_")
           .replace(/^_+|_+$/g, "");
 
-        if (!cleanSlug) cleanSlug = genRandomSlug(slugLength, "alphanumeric");
+        try {
+          const hostname = new URL(targetUrl).hostname.replace(/^www\./, "").split(".")[0];
+          if (hostname.length > 3 && cleanSlug.includes(hostname)) {
+            cleanSlug = cleanSlug.replace(new RegExp(hostname, "g"), "").replace(/_+/g, "_").replace(/^_+|_+$/g, "");
+          }
+        } catch {}
+
+        if (!cleanSlug || cleanSlug.length < 3) cleanSlug = genRandomSlug(slugLength, "alphanumeric");
 
         if (cleanSlug.length > slugLength) {
           cleanSlug = cleanSlug.slice(0, slugLength).replace(/_+$/g, "");
@@ -167,12 +173,31 @@ export async function onRequest(context) {
         const body = await request.json();
         let { slug, targetUrl, splat, length, mode, password, expAmount, expUnit } = body;
         if (!slug) slug = genRandomSlug(parseInt(length) || 6, mode || "alphanumeric");
-        slug = slug.trim().toLowerCase().replace(/^\/+|\/+$/g, "");
+        slug = slug.trim().toLowerCase().replace(/^\/+|\/+$/g, "").replace(/\/+/g, "/");
         if (slug.length > MAX_SLUG_LENGTH) return json({ error: `Slug máximo ${MAX_SLUG_LENGTH} caracteres` }, 400);
-        if (!validateSlugFormat(slug)) return json({ error: "Slug solo puede tener letras, números y guion bajo (_)" }, 400);
-        if (RESERVED_SLUGS.has(slug)) return json({ error: "Ruta reservada" }, 400);
+        if (!validateSlugFormat(slug)) return json({ error: "Slug solo puede tener letras, números, guion bajo (_) y barra (/). No puede empezar ni terminar con / ni tener // consecutivos" }, 400);
+        if (RESERVED_SLUGS.has(slug.split("/")[0])) return json({ error: "Ruta reservada" }, 400);
         if (!targetUrl) return json({ error: "Falta la URL de destino" }, 400);
         try { new URL(targetUrl); } catch { return json({ error: "URL inválida" }, 400); }
+
+        // Verificar conflicto con subrutas existentes
+        const conflict = await env.DB.prepare(
+          "SELECT slug FROM links WHERE slug LIKE ? OR slug = ?"
+        ).bind(slug + "/%", slug).first();
+        if (conflict && conflict.slug !== slug) {
+          return json({ error: "Conflicto con una ruta existente: /" + conflict.slug }, 400);
+        }
+
+        // Verificar si un slug padre con splat captura esta ruta
+        const parts = slug.split("/");
+        for (let i = 1; i < parts.length; i++) {
+          const parentSlug = parts.slice(0, i).join("/");
+          const parent = await env.DB.prepare("SELECT slug, splat FROM links WHERE slug = ?").bind(parentSlug).first();
+          if (parent && parent.splat === 1) {
+            return json({ error: "Conflicto: /" + parentSlug + " ya captura esta ruta con splat activado" }, 400);
+          }
+        }
+
         let expiresAtTimestamp = null;
         if (expUnit !== 'never' && expAmount && parseInt(expAmount) > 0) {
           const mult = { minutes: 60000, hours: 3600000, days: 86400000 };
@@ -186,11 +211,28 @@ export async function onRequest(context) {
       if (action === "save-hub" && request.method === "POST") {
         const body = await request.json();
         let { slug, mode, title, bio, theme_palette, btn_style, bg_type, bg_val, custom_html, lang_mode, items, password } = body;
-        slug = (slug || "").trim().toLowerCase().replace(/^\/+|\/+$/g, "");
+        slug = (slug || "").trim().toLowerCase().replace(/^\/+|\/+$/g, "").replace(/\/+/g, "/");
         if (!slug) return json({ error: "Slug requerido" }, 400);
         if (slug.length > MAX_SLUG_LENGTH) return json({ error: `Slug máximo ${MAX_SLUG_LENGTH} caracteres` }, 400);
-        if (!validateSlugFormat(slug)) return json({ error: "Slug solo puede tener letras, números y guion bajo (_)" }, 400);
-        if (RESERVED_SLUGS.has(slug)) return json({ error: "Ruta reservada" }, 400);
+        if (!validateSlugFormat(slug)) return json({ error: "Slug solo puede tener letras, números, guion bajo (_) y barra (/). No puede empezar ni terminar con / ni tener // consecutivos" }, 400);
+        if (RESERVED_SLUGS.has(slug.split("/")[0])) return json({ error: "Ruta reservada" }, 400);
+
+        const conflict = await env.DB.prepare(
+          "SELECT slug FROM links WHERE slug LIKE ? OR slug = ?"
+        ).bind(slug + "/%", slug).first();
+        if (conflict && conflict.slug !== slug) {
+          return json({ error: "Conflicto con una ruta existente: /" + conflict.slug }, 400);
+        }
+
+        const parts = slug.split("/");
+        for (let i = 1; i < parts.length; i++) {
+          const parentSlug = parts.slice(0, i).join("/");
+          const parent = await env.DB.prepare("SELECT slug, splat FROM links WHERE slug = ?").bind(parentSlug).first();
+          if (parent && parent.splat === 1) {
+            return json({ error: "Conflicto: /" + parentSlug + " ya captura esta ruta con splat activado" }, 400);
+          }
+        }
+
         await env.DB.batch([
           env.DB.prepare(`INSERT INTO links (slug, type, target_url, splat, password) VALUES (?, 'group', '', 0, ?) ON CONFLICT(slug) DO UPDATE SET type='group', password=excluded.password`).bind(slug, password?.trim() || null),
           env.DB.prepare(`INSERT INTO hub_configs (slug, mode, title, bio, theme_palette, btn_style, bg_type, bg_val, custom_html, lang_mode, items_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(slug) DO UPDATE SET mode=excluded.mode, title=excluded.title, bio=excluded.bio, theme_palette=excluded.theme_palette, btn_style=excluded.btn_style, bg_type=excluded.bg_type, bg_val=excluded.bg_val, custom_html=excluded.custom_html, lang_mode=excluded.lang_mode, items_json=excluded.items_json`).bind(
@@ -263,7 +305,31 @@ export async function onRequest(context) {
     if (!prefix) return Response.redirect(`${url.origin}/gs/dashboard`, 302);
 
     await initDB(env.DB);
-    const link = await env.DB.prepare("SELECT * FROM links WHERE slug = ?").bind(prefix).first();
+
+    // ✅ Buscar el slug MÁS LARGO posible que exista en la DB
+    // Ej: /git/q/extra
+    //   - Prueba "git/q/extra" → no existe
+    //   - Prueba "git/q" → existe ✅ → matchedSlug = "git/q", remaining = ["extra"]
+    //   - Si "git/q" no tuviera splat, no se usaría para /extra, pero como es el match más largo,
+    //     se sigue usando "git/q" y se ignora "extra" (a menos que tenga splat)
+    //   - El splat solo decide si se concatena el resto al destino
+    let link = null;
+    let matchedSlug = "";
+    let matchedSegments = 0;
+    let remainingSegments = [];
+
+    for (let i = segments.length; i >= 1; i--) {
+      const candidateSlug = segments.slice(0, i).join("/").toLowerCase();
+      const found = await env.DB.prepare("SELECT * FROM links WHERE slug = ?").bind(candidateSlug).first();
+      if (found) {
+        link = found;
+        matchedSlug = candidateSlug;
+        matchedSegments = i;
+        remainingSegments = segments.slice(i);
+        break;
+      }
+    }
+
     if (!link) return new Response("Enlace no encontrado", { status: 404 });
 
     if (link.expires_at && Date.now() > Number(link.expires_at)) {
@@ -281,16 +347,17 @@ export async function onRequest(context) {
       if (userPass !== link.password) {
         const htmlRes = await fetch(new URL("/gs/password.html", url.origin));
         let html = await htmlRes.text();
-        html = html.replace(/{{slug}}/g, prefix);
+        html = html.replace(/{{slug}}/g, matchedSlug);
         html = html.replace(/{{hasError}}/g, userPass ? '<div class="err">Contraseña incorrecta</div>' : '');
         return new Response(html, { headers: { "Content-Type": "text/html; charset=utf-8" } });
       }
     }
 
-    recordAnalytics(context, env, prefix, request);
+    recordAnalytics(context, env, matchedSlug, request);
 
+    // Si es hub, renderizar hub.html (ignora remainingSegments)
     if (link.type === "group") {
-      const hub = await env.DB.prepare("SELECT * FROM hub_configs WHERE slug = ?").bind(prefix).first();
+      const hub = await env.DB.prepare("SELECT * FROM hub_configs WHERE slug = ?").bind(matchedSlug).first();
       const htmlRes = await fetch(new URL("/gs/hub.html", url.origin));
       let html = await htmlRes.text();
       let items = [];
@@ -310,8 +377,8 @@ export async function onRequest(context) {
         const href = it.is_gs ? `${url.origin}/${it.url}` : it.url;
         return `<a href="${href}" target="_blank" rel="noopener noreferrer" class="hub-btn"><span>${it.title}</span><span>&rarr;</span></a>`;
       }).join("");
-      html = html.replace(/{{slug}}/g, prefix);
-      html = html.replace(/{{title}}/g, hub?.title || prefix);
+      html = html.replace(/{{slug}}/g, matchedSlug);
+      html = html.replace(/{{title}}/g, hub?.title || matchedSlug);
       html = html.replace(/{{bgStyle}}/g, bgStyle);
       html = html.replace(/{{textColor}}/g, pal.text);
       html = html.replace(/{{btnColor}}/g, pal.btn);
@@ -325,14 +392,21 @@ export async function onRequest(context) {
       return new Response(html, { headers: { "Content-Type": "text/html; charset=utf-8" } });
     }
 
+    // Enlace directo: construir destino
     let target = link.target_url.replace(/\/+$/, "");
-    if (link.splat && segments.length > 1) target += "/" + segments.slice(1).join("/");
+
+    // Si tiene splat, concatenar el resto de segmentos
+    if (link.splat && remainingSegments.length > 0) {
+      target += "/" + remainingSegments.join("/");
+    }
+
     if (url.search) {
       const cleanParams = new URLSearchParams(url.search);
       cleanParams.delete("pwd");
       const qs = cleanParams.toString();
       if (qs) target += (target.includes("?") ? "&" : "?") + qs;
     }
+
     return Response.redirect(target, 302);
 
   } catch (error) {
