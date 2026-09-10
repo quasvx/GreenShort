@@ -117,13 +117,13 @@ export async function onRequest(context) {
         } catch {}
         try {
           // ✅ Modelo válido con fallback a variable de entorno
-          const model = env.AI_MODEL || "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
-          const aiRes = await env.AI.run(model, {
-            messages: [
-              { role: "system", content: `Genera exclusivamente un slug corto de EXACTAMENTE ${slugLength} caracteres (palabras unidas por guiones, minúsculas, sin números ni caracteres especiales) representativo del contenido. Responde ÚNICAMENTE con el slug sin formato ni comillas.` },
-              { role: "user", content: contextText.slice(0, 400) }
+     const model = env.AI_MODEL || "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
+     const aiRes = await env.AI.run(model, {
+       messages: [
+           { role: "system", content: `Genera exclusivamente un slug corto de EXACTAMENTE ${slugLength} caracteres (palabras unidas por guiones, minúsculas, sin números ni caracteres especiales) representativo del contenido. Responde ÚNICAMENTE con el slug sin formato ni comillas.` },
+           { role: "user", content: contextText.slice(0, 400) }
             ]
-          });
+           });
           let cleanSlug = (aiRes.response || "").trim().toLowerCase().replace(/["'`\n\r]/g, "").replace(/[^a-z0-9_]/g, "").replace(/^-+|-+$/g, "");
           if (cleanSlug.length < slugLength) {
             const padding = genRandomSlug(slugLength - cleanSlug.length, "alphanumeric");
