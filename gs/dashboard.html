@@ -690,19 +690,37 @@
   }
 
   function validateSlug(el) {
-    var val = el.value.trim().toLowerCase();
-    var sanitized = val.replace(/[^a-z0-9_]/g, '');
-    if (sanitized !== val) { el.value = sanitized; val = sanitized; }
-    var count = document.getElementById('slugFeedback');
-    count.textContent = val.length + ' / ' + appConfig.maxSlugLength;
-    var reserved = ['gs', 'gs-files', 'favicon.ico', 'favicon.svg', 'robots.txt', 'sitemap.xml'];
-    if (reserved.indexOf(val) !== -1) {
-      count.textContent = (currentDict.msg_error_slug_reserved || '¡Ruta reservada!');
-      count.style.color = '#ef4444';
-    } else {
-      count.style.color = '#64748b';
-    }
+  var val = el.value.toLowerCase();
+  
+  // Permitir solo: letras, números, guion bajo y barra
+  val = val.replace(/[^a-z0-9_\/]/g, '');
+  
+  // No puede empezar con /
+  val = val.replace(/^\/+/, '');
+  
+  // No puede tener // consecutivos (colapsar a /)
+  val = val.replace(/\/+/g, '/');
+  
+  // No puede terminar con / (esto es lo que pediste)
+  val = val.replace(/\/+$/, '');
+  
+  // Actualizar el input con el valor sanitizado
+  el.value = val;
+  
+  // Contador
+  var count = document.getElementById('slugFeedback');
+  count.textContent = val.length + ' / ' + appConfig.maxSlugLength;
+  
+  // Validar rutas reservadas (solo el primer segmento)
+  var reserved = ['gs', 'gs-files', 'favicon.ico', 'favicon.svg', 'robots.txt', 'sitemap.xml'];
+  var firstSegment = val.split('/')[0];
+  if (reserved.indexOf(firstSegment) !== -1) {
+    count.textContent = (currentDict.msg_error_slug_reserved || '¡Ruta reservada!');
+    count.style.color = '#ef4444';
+  } else {
+    count.style.color = '#64748b';
   }
+}
 
   async function genSlugAI() {
     var t = currentDict || {};
