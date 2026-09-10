@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="{{lang}}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <title>{{title}}</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { 
+      background: {{bgStyle}}; 
+      color: {{textColor}}; 
+      display: flex; 
+      flex-direction: column; 
+      align-items: center; 
+      padding: 40px 16px; 
+      min-height: 100vh; 
+    }
+    .hub-wrap { width: 100%; max-width: 440px; text-align: center; }
+    .hub-avatar { width: 64px; height: 64px; border-radius: 50%; background: {{btnColor}}; color: {{btnTextColor}}; display: inline-flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 800; margin-bottom: 16px; }
+    h1 { font-size: 20px; font-weight: 700; margin-bottom: 6px; }
+    p.bio { font-size: 14px; opacity: 0.75; margin-bottom: 24px; }
+    .hub-btn { 
+      display: flex; 
+      justify-content: space-between; 
+      align-items: center; 
+      background: {{cardBg}}; 
+      border: 1px solid {{borderColor}}; 
+      padding: 14px 18px; 
+      border-radius: {{btnRadius}}; 
+      color: {{textColor}}; 
+      text-decoration: none; 
+      font-weight: 600; 
+      font-size: 14px; 
+      margin-bottom: 12px; 
+      transition: transform 0.15s ease; 
+    }
+    .hub-btn:active { transform: scale(0.98); }
+  </style>
+</head>
+<body>
+  <div class="hub-wrap">
+    <div class="hub-avatar">GS</div>
+    <h1>{{title}}</h1>
+    {{bioHtml}}
+    <div>{{linksHtml}}</div>
+  </div>
+</body>
+</html>

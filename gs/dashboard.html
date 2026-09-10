@@ -1,0 +1,1264 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <title>GS - Dashboard</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
+    body { background: radial-gradient(ellipse at top, #101915 0%, #0c110e 50%); color: #e2e8f0; display: flex; justify-content: center; padding: 16px 12px; min-height: 100vh; }
+    .container { width: 100%; max-width: 1100px; }
+
+    .brand { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; flex-wrap: wrap; gap: 12px; }
+    .brand-left { display: flex; align-items: center; gap: 12px; min-width: 0; }
+    .logo-wrap { width: 40px; height: 40px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius: 10px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3); flex-shrink: 0; }
+    .logo-img { width: 26px; height: 26px; }
+    .brand-text { min-width: 0; }
+    .brand-text h1 { font-size: 20px; font-weight: 800; letter-spacing: -0.5px; background: linear-gradient(135deg, #f9fafb 0%, #94a3b8 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .brand-text p { font-size: 11px; color: #64748b; margin-top: 2px; }
+    .right-tools { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; max-width: 100%; }
+    .storage-badge {
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      padding: 5px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      color: #10b981;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      max-width: 220px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      transition: max-width 0.3s ease;
+      cursor: default;
+    }
+    .storage-badge::before { content: '●'; animation: pulse 2s infinite; flex-shrink: 0; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+    @media (max-width: 640px) {
+      .storage-badge { max-width: 140px; font-size: 10px; padding: 4px 8px; }
+    }
+    @media (max-width: 420px) {
+      .storage-badge {
+        max-width: 36px;
+        width: 36px;
+        height: 36px;
+        padding: 0;
+        justify-content: center;
+        border-radius: 50%;
+        font-size: 0;
+      }
+      .storage-badge::before { font-size: 11px; }
+    }
+    .storage-badge:hover { max-width: 100%; }
+    .lang-select { background: #131a16; border: 1px solid #1e2a22; color: #fff; padding: 6px 10px; border-radius: 8px; font-size: 12px; outline: none; cursor: pointer; }
+
+    .nav { display: flex; gap: 4px; margin-bottom: 24px; padding: 6px; background: #131a16; border: 1px solid #1e2a22; border-radius: 12px; align-items: center; flex-wrap: wrap; }
+    .nav button { background: none; border: none; color: #94a3b8; padding: 10px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+    .nav button:hover { background: #1a241e; color: #e2e8f0; }
+    .nav button.active { background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #062419; box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3); }
+    .nav-actions { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; padding-left: 8px; }
+
+    .card { background: #131a16; border: 1px solid #1e2a22; border-radius: 16px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2); }
+    .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px; }
+    .card-title { font-size: 15px; font-weight: 700; color: #f1f5f9; display: flex; align-items: center; gap: 8px; }
+
+    label { display: block; font-size: 11px; font-weight: 700; color: #94a3b8; margin: 12px 0 6px; text-transform: uppercase; letter-spacing: 0.8px; }
+    input, select, textarea { width: 100%; padding: 11px 14px; background: #0c110e; border: 1px solid #233228; border-radius: 10px; color: #fff; font-size: 14px; outline: none; transition: all 0.2s; }
+    input:focus, select:focus, textarea:focus { border-color: #10b981; box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1); }
+    input::placeholder, textarea::placeholder { color: #475569; }
+
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    @media (max-width: 640px) { .grid-2 { grid-template-columns: 1fr; gap: 0; } .nav-actions { margin-left: 0; width: 100%; } }
+
+    .row-btn { display: flex; gap: 8px; margin-top: 16px; }
+    .btn-main { background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #062419; border: none; padding: 11px 18px; border-radius: 10px; font-weight: 700; font-size: 13px; cursor: pointer; text-align: center; transition: all 0.2s; box-shadow: 0 2px 8px rgba(16, 185, 129, 0.2); }
+    .btn-main:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35); }
+    .btn-main:active { transform: translateY(0); }
+    .btn-main:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+    .btn-secondary { background: #1b2620; border: 1px solid #27382d; color: #e2e8f0; padding: 9px 14px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; text-align: center; transition: all 0.2s; }
+    .btn-secondary:hover { border-color: #10b981; color: #10b981; }
+    .btn-danger { background: linear-gradient(135deg, #7f1d1d 0%, #991b1b 100%); border: none; color: #fca5a5; padding: 9px 14px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; text-align: center; transition: all 0.2s; }
+    .btn-danger:hover { background: linear-gradient(135deg, #991b1b 0%, #b91c1c 100%); }
+    .btn-icon { background: none; border: none; color: #94a3b8; padding: 8px; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s; }
+
+    .table-container { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: 12px; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th { text-align: left; padding: 12px 10px; background: #0c110e; border-bottom: 1px solid #1e2a22; color: #64748b; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+    td { padding: 14px 10px; border-bottom: 1px solid #16201a; word-break: break-word; vertical-align: middle; }
+    tr:hover td { background: rgba(16, 185, 129, 0.03); }
+    tr:last-child td { border-bottom: none; }
+
+    .checkbox-cell { width: 40px; text-align: center; }
+    .checkbox-cell input { width: 16px; height: 16px; accent-color: #10b981; cursor: pointer; }
+
+    .tag { padding: 3px 8px; border-radius: 6px; font-size: 10px; font-weight: 700; display: inline-block; }
+    .tag-human { background: rgba(6, 78, 59, 0.5); color: #6ee7b7; border: 1px solid rgba(16, 185, 129, 0.3); }
+    .tag-bot { background: rgba(127, 29, 29, 0.5); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.3); }
+    .tag-lock { background: rgba(59, 42, 18, 0.6); color: #fcd34d; border: 1px solid rgba(245, 158, 11, 0.3); }
+    .tag-hub { background: rgba(30, 27, 75, 0.6); color: #a5b4fc; border: 1px solid rgba(99, 102, 241, 0.3); }
+
+    .btn-group { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; }
+    .btn-action { background: #17261e; border: 1px solid #21352a; color: #e2e8f0; padding: 6px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.15s; }
+    .btn-action:hover { border-color: #10b981; color: #10b981; }
+    .btn-del { color: #f87171; background: rgba(38, 23, 23, 0.6); border-color: #3b1d1d; }
+    .btn-del:hover { border-color: #ef4444; color: #fca5a5; }
+
+    .bulk-bar { display: none; align-items: center; gap: 12px; padding: 12px 16px; background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(5, 150, 105, 0.1) 100%); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 12px; margin-bottom: 16px; }
+    .bulk-bar.active { display: flex; }
+    .bulk-bar span { font-size: 13px; font-weight: 600; color: #10b981; }
+    .bulk-bar .btn-danger { padding: 6px 12px; font-size: 12px; }
+
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(8px); display: none; align-items: center; justify-content: center; z-index: 99; padding: 16px; }
+    .modal-overlay.active { display: flex; }
+    .modal-box { background: #131a16; border: 1px solid #233228; border-radius: 16px; width: 100%; max-width: 640px; max-height: 92vh; overflow-y: auto; padding: 24px; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5); animation: modalIn 0.2s ease; }
+    @keyframes modalIn { from { opacity: 0; transform: scale(0.96); } to { opacity: 1; transform: scale(1); } }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding-bottom: 14px; border-bottom: 1px solid #1c2620; }
+    .modal-header h2 { font-size: 16px; font-weight: 700; }
+    .modal-close { background: none; border: none; color: #94a3b8; font-size: 22px; padding: 4px 8px; cursor: pointer; border-radius: 6px; transition: all 0.2s; }
+
+    .warning-text { color: #f59e0b; font-size: 12px; margin-top: 6px; padding: 6px 10px; background: rgba(245, 158, 11, 0.1); border-radius: 6px; border-left: 3px solid #f59e0b; }
+    .error-text { color: #fca5a5; font-size: 12px; margin-top: 6px; padding: 6px 10px; background: rgba(239, 68, 68, 0.1); border-radius: 6px; border-left: 3px solid #ef4444; }
+
+    .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(100px); background: #131a16; border: 1px solid #2a3a30; padding: 14px 24px; border-radius: 12px; font-size: 13px; font-weight: 600; z-index: 100; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4); transition: transform 0.3s ease; max-width: 90%; }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+    .toast.error { border-color: #7f1d1d; color: #fca5a5; background: linear-gradient(135deg, #1a0f0f 0%, #131a16 100%); }
+    .toast.success { border-color: #065f46; color: #6ee7b7; background: linear-gradient(135deg, #0f1a15 0%, #131a16 100%); }
+
+    .flow-controls { display: flex; gap: 12px; margin-bottom: 16px; align-items: center; flex-wrap: wrap; padding: 12px; background: #0c110e; border-radius: 10px; border: 1px solid #1e2a22; }
+    .flow-controls label { margin: 0; display: flex; align-items: center; gap: 6px; text-transform: none; letter-spacing: 0; font-size: 12px; cursor: pointer; }
+    .flow-controls input[type="checkbox"] { width: auto; margin: 0; }
+    .flow-controls select { width: auto; padding: 6px 10px; font-size: 12px; }
+
+    .empty-state { text-align: center; padding: 40px 20px; color: #64748b; font-size: 13px; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="brand">
+    <div class="brand-left">
+      <div class="logo-wrap"><img src="/favicon.svg" class="logo-img" alt="GS"></div>
+      <div class="brand-text">
+        <h1 data-i18n="brand_name">GreenShort</h1>
+        <p data-i18n="brand_subtitle">Acortador inteligente</p>
+      </div>
+    </div>
+    <div class="right-tools">
+      <div id="dbStorage" class="storage-badge" data-i18n="storage_loading">Cargando...</div>
+      <select id="langSelect" class="lang-select" onchange="changeLang(this.value)">
+        <option value="es_es">ES</option>
+        <option value="en_us">EN</option>
+        <option value="ru_ru">RU</option>
+        <option value="zh_cn">ZH-CN</option>
+        <option value="zh_tw">ZH-TW</option>
+      </select>
+    </div>
+  </div>
+
+  <div id="authView" class="card">
+    <div class="card-header"><div class="card-title">🔐 <span data-i18n="auth_title">Acceso con Site Token</span></div></div>
+    <input type="password" id="siteToken" placeholder="SITE_TOKEN" data-i18n-placeholder="placeholder_token">
+    <div id="authError" class="error-text" style="display:none;"></div>
+    <div class="row-btn">
+      <button class="btn-main" style="width:100%;" data-i18n="auth_btn" onclick="authLogin()">Acceder</button>
+    </div>
+  </div>
+
+  <div id="dashView" style="display:none;">
+    <div class="nav">
+      <button class="active" id="tabLinks" data-i18n="tab_links" onclick="switchTab('links')">Enlaces</button>
+      <button id="tabHubs" data-i18n="tab_hubs" onclick="switchTab('hubs')">Conjuntos</button>
+      <button id="tabAnalytics" data-i18n="tab_analytics" onclick="switchTab('analytics')">Analítica</button>
+      <button id="tabFlow" data-i18n="tab_flow" onclick="switchTab('flow')">Flujo de clics</button>
+      <div class="nav-actions">
+        <button class="btn-main" data-i18n="btn_new_link" onclick="openLinkModal()">➕ Enlace</button>
+        <button class="btn-secondary" data-i18n="btn_new_hub" onclick="openHubModal()">➕ Conjunto</button>
+        <button class="btn-danger" data-i18n="btn_logout" onclick="logout()">Cerrar sesión</button>
+      </div>
+    </div>
+
+    <div id="viewLinks" class="card">
+      <div class="card-header"><div class="card-title">🔗 <span data-i18n="tab_links">Enlaces</span></div></div>
+      <div id="linksBulkBar" class="bulk-bar">
+        <span id="linksSelectedCount" data-i18n="msg_selected">0 seleccionados</span>
+        <button class="btn-danger" data-i18n="btn_delete_selected" onclick="bulkDelete('links')">🗑️ Eliminar seleccionados</button>
+        <button class="btn-secondary" data-i18n="btn_cancel" onclick="clearSelection('links')">Cancelar</button>
+      </div>
+      <div id="linksLoading" class="empty-state" data-i18n="msg_loading">Cargando...</div>
+      <div id="linksError" class="error-text" style="display:none;"></div>
+      <div class="table-container" id="linksTableContainer" style="display:none;">
+        <table id="linksTable">
+          <thead>
+            <tr>
+              <th class="checkbox-cell"><input type="checkbox" id="linksSelectAll" onchange="toggleSelectAll('links', this.checked)"></th>
+              <th data-i18n="th_slug">Slug</th>
+              <th data-i18n="th_dest">Destino</th>
+              <th data-i18n="th_sec">Estado</th>
+              <th data-i18n="th_clicks">Clics</th>
+              <th data-i18n="th_act">Acciones</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="viewHubs" class="card" style="display:none;">
+      <div class="card-header"><div class="card-title">📁 <span data-i18n="tab_hubs">Conjuntos</span></div></div>
+      <div id="hubsBulkBar" class="bulk-bar">
+        <span id="hubsSelectedCount" data-i18n="msg_selected">0 seleccionados</span>
+        <button class="btn-danger" data-i18n="btn_delete_selected" onclick="bulkDelete('hubs')">🗑️ Eliminar seleccionados</button>
+        <button class="btn-secondary" data-i18n="btn_cancel" onclick="clearSelection('hubs')">Cancelar</button>
+      </div>
+      <div id="hubsLoading" class="empty-state" data-i18n="msg_loading">Cargando...</div>
+      <div id="hubsError" class="error-text" style="display:none;"></div>
+      <div class="table-container" id="hubsTableContainer" style="display:none;">
+        <table id="hubsTable">
+          <thead>
+            <tr>
+              <th class="checkbox-cell"><input type="checkbox" id="hubsSelectAll" onchange="toggleSelectAll('hubs', this.checked)"></th>
+              <th data-i18n="th_slug">Slug</th>
+              <th data-i18n="th_title">Título</th>
+              <th data-i18n="th_type">Tipo</th>
+              <th data-i18n="th_clicks">Clics</th>
+              <th data-i18n="th_act">Acciones</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="viewAnalytics" class="card" style="display:none;">
+      <div class="card-header"><div class="card-title">📊 <span data-i18n="tab_analytics">Analítica</span></div></div>
+      <div id="analyticsLoading" class="empty-state" data-i18n="msg_loading">Cargando...</div>
+      <div id="analyticsError" class="error-text" style="display:none;"></div>
+      <div class="table-container" id="analyticsTableContainer" style="display:none;">
+        <table>
+          <thead>
+            <tr>
+              <th data-i18n="th_slug">Ruta</th>
+              <th data-i18n="th_country">País</th>
+              <th data-i18n="th_type">Tipo</th>
+              <th data-i18n="th_date">Fecha</th>
+              <th>User Agent</th>
+            </tr>
+          </thead>
+          <tbody id="analyticsBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="viewFlow" class="card" style="display:none;">
+      <div class="card-header"><div class="card-title">🌊 <span data-i18n="tab_flow">Flujo de clics</span></div></div>
+      <div class="flow-controls">
+        <label><input type="checkbox" id="flowOnlyHumans" onchange="loadFlow()"> <span data-i18n="flow_only_humans">Solo humanos</span></label>
+        <select id="flowLimit" onchange="loadFlow()">
+          <option value="50">50</option>
+          <option value="100" selected>100</option>
+          <option value="250">250</option>
+          <option value="500">500</option>
+        </select>
+        <button class="btn-secondary" onclick="loadFlow()">🔄 <span data-i18n="btn_refresh">Refrescar</span></button>
+      </div>
+      <div id="flowLoading" class="empty-state" data-i18n="msg_loading">Cargando...</div>
+      <div id="flowError" class="error-text" style="display:none;"></div>
+      <div class="table-container" id="flowTableContainer" style="display:none;">
+        <table>
+          <thead>
+            <tr>
+              <th data-i18n="th_flow_route">Ruta</th>
+              <th data-i18n="th_flow_date">Fecha</th>
+              <th data-i18n="th_flow_type">Tipo</th>
+              <th data-i18n="th_flow_country">País</th>
+              <th data-i18n="th_flow_referrer">Referente</th>
+            </tr>
+          </thead>
+          <tbody id="flowBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<div id="linkModal" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2 id="linkModalTitle" data-i18n="modal_link_title">✨ Crear Enlace</h2>
+      <button class="modal-close" onclick="closeModals()">✕</button>
+    </div>
+    <div>
+      <label id="lblSlugDynamic" data-i18n="lbl_slug">Slug Personalizado</label>
+      <input type="text" id="slugInput" maxlength="20" placeholder="mi_enlace" data-i18n-placeholder="placeholder_slug" oninput="validateSlug(this)">
+      <div id="slugFeedback" style="font-size:11px;color:#64748b;text-align:right;margin-top:4px;">0 / 20</div>
+    </div>
+    <div class="grid-2">
+      <div>
+        <label data-i18n="lbl_random">Generar Aleatorio</label>
+        <div style="display:flex;gap:6px;">
+          <select id="slugLen" style="width:70px;"><option value="4">4</option><option value="6" selected>6</option><option value="8">8</option></select>
+          <select id="slugMode"><option value="alphanumeric">Alfanum.</option><option value="alpha">Letras</option><option value="numeric">Núm.</option></select>
+          <button class="btn-secondary" onclick="applyRandomSlug()">🎲</button>
+        </div>
+      </div>
+      <div>
+        <label data-i18n="lbl_ai">IA por Contenido</label>
+        <button class="btn-secondary" style="width:100%;padding:11px;" id="btnAiSlug" data-i18n="btn_ai_scan" onclick="genSlugAI()">✨ Generar con IA</button>
+        <div id="aiWarning" class="warning-text" style="display:none;"></div>
+      </div>
+    </div>
+    <div>
+      <label data-i18n="lbl_target">URL de Destino</label>
+      <input type="url" id="targetUrl" placeholder="https://ejemplo.com" data-i18n-placeholder="placeholder_target">
+      <div style="display:flex;align-items:center;gap:8px;margin-top:8px;">
+        <input type="checkbox" id="splat" checked style="width:auto;">
+        <span style="font-size:12px;color:#94a3b8;" data-i18n="lbl_splat">Subrutas (/slug/* → destino/*)</span>
+      </div>
+    </div>
+    <div class="grid-2">
+      <div>
+        <label data-i18n="lbl_pwd">Contraseña (Opcional)</label>
+        <input type="password" id="linkPassword" placeholder="Dejar vacío si es público" data-i18n-placeholder="placeholder_pwd_public">
+      </div>
+      <div>
+        <label data-i18n="lbl_exp">Expiración</label>
+        <div style="display:flex;gap:6px;">
+          <input type="number" id="expAmount" min="1" placeholder="Ej: 10" data-i18n-placeholder="placeholder_exp" style="flex:1;">
+          <select id="expUnit" style="flex:1.5;">
+            <option value="minutes" data-i18n="opt_min">Minutos</option>
+            <option value="hours" data-i18n="opt_hr">Horas</option>
+            <option value="days" data-i18n="opt_days">Días</option>
+            <option value="never" data-i18n="opt_never">Nunca expira</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div id="linkModalError" class="error-text" style="display:none;"></div>
+    <div class="row-btn">
+      <button class="btn-main" style="flex:1;" id="btnSaveLink" data-i18n="btn_save" onclick="saveLink()">Guardar</button>
+      <button class="btn-secondary" data-i18n="btn_cancel" onclick="closeModals()">Cancelar</button>
+    </div>
+    <div id="linkStatusMsg" style="margin-top:10px;font-size:12px;text-align:center;"></div>
+  </div>
+</div>
+
+<div id="hubModal" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2 data-i18n="modal_hub_title">🎨 Diseñar Conjunto de Enlaces</h2>
+      <button class="modal-close" onclick="closeModals()">✕</button>
+    </div>
+    <div class="grid-2">
+      <div>
+        <label id="lblHubSlugDynamic" data-i18n="lbl_hub_slug">Slug</label>
+        <input type="text" id="hubSlug" maxlength="20" placeholder="mis_enlaces" data-i18n-placeholder="placeholder_hub_slug">
+      </div>
+      <div>
+        <label data-i18n="lbl_hub_mode">Modo</label>
+        <select id="hubMode" onchange="toggleHubMode()">
+          <option value="builder" data-i18n="opt_builder">Constructor Visual</option>
+          <option value="custom_html" data-i18n="opt_html">HTML Personalizado</option>
+        </select>
+      </div>
+    </div>
+    <div>
+      <label data-i18n="lbl_hub_pwd">Contraseña del Conjunto (Opcional)</label>
+      <input type="password" id="hubPassword" placeholder="Dejar vacío si es público" data-i18n-placeholder="placeholder_pwd_public">
+    </div>
+    <div id="hubCustomHtmlWrap" style="display:none;margin-top:12px;">
+      <label>HTML / CSS</label>
+      <textarea id="hubCustomHtml" rows="8" placeholder="<!DOCTYPE html><html>...</html>" data-i18n-placeholder="placeholder_hub_custom_html"></textarea>
+    </div>
+    <div id="hubBuilderWrap">
+      <div class="grid-2">
+        <div><label data-i18n="lbl_hub_title">Título</label><input type="text" id="hubTitle" placeholder="Mi Biografía" data-i18n-placeholder="placeholder_hub_title"></div>
+        <div><label data-i18n="lbl_hub_bio">Biografía</label><input type="text" id="hubBio" placeholder="Creador de contenido" data-i18n-placeholder="placeholder_hub_bio"></div>
+      </div>
+      <div class="grid-2">
+        <div>
+          <label data-i18n="lbl_hub_palette">Paleta</label>
+          <select id="hubPalette">
+            <option value="emerald">Emerald Dark</option>
+            <option value="midnight">Midnight Blue</option>
+            <option value="cyberpunk">Cyberpunk Neon</option>
+            <option value="minimal_light">Minimal White</option>
+          </select>
+        </div>
+        <div>
+          <label data-i18n="lbl_hub_buttons">Estilo de Botones</label>
+          <select id="hubBtnStyle">
+            <option value="rounded">Bordes Suaves</option>
+            <option value="pill">Redondos (Pills)</option>
+            <option value="sharp">Rectangulares</option>
+          </select>
+        </div>
+      </div>
+      <div style="margin-top:14px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+          <label style="margin:0;" data-i18n="lbl_hub_links">Enlaces del Conjunto</label>
+          <button class="btn-secondary" style="font-size:11px;padding:5px 10px;" onclick="addHubItemRow()">+ Añadir</button>
+        </div>
+        <div id="hubItemsRows"></div>
+      </div>
+    </div>
+    <div id="hubModalError" class="error-text" style="display:none;"></div>
+    <div class="row-btn">
+      <button class="btn-main" style="flex:1;" id="btnSaveHub" data-i18n="btn_save" onclick="saveHub()">Guardar Conjunto</button>
+      <button class="btn-secondary" data-i18n="btn_cancel" onclick="closeModals()">Cancelar</button>
+    </div>
+    <div id="hubStatusMsg" style="margin-top:10px;font-size:12px;text-align:center;"></div>
+  </div>
+</div>
+
+<script>
+  var DICT_CACHE = {};
+  var appConfig = { maxSlugLength: 20, maxExpirationDays: 365 };
+  var selectedLinks = new Set();
+  var selectedHubs = new Set();
+
+  async function loadLocale(lang) {
+    if (DICT_CACHE[lang]) return DICT_CACHE[lang];
+    try {
+      var res = await fetch('/gs-files/locales/' + lang + '.json');
+      if (!res.ok) {
+        var fallback = await fetch('/gs-files/locales/es_es.json');
+        var data = await fallback.json();
+        DICT_CACHE[lang] = data;
+        return data;
+      }
+      var data = await res.json();
+      DICT_CACHE[lang] = data;
+      return data;
+    } catch {
+      var fallback = await fetch('/gs-files/locales/es_es.json');
+      var data = await fallback.json();
+      DICT_CACHE[lang] = data;
+      return data;
+    }
+  }
+
+  var curLang = localStorage.getItem('gs_lang') || 'es_es';
+  var token = localStorage.getItem('gs_token');
+  var loadedLinks = [];
+  var currentDict = {};
+
+  async function changeLang(l) {
+    curLang = l;
+    localStorage.setItem('gs_lang', l);
+    document.getElementById('langSelect').value = l;
+    currentDict = await loadLocale(l);
+    applyTranslations();
+    if (loadedLinks.length) renderTables(loadedLinks);
+    loadStorage();
+  }
+
+  function applyTranslations() {
+    var t = currentDict || {};
+    var els = document.querySelectorAll('[data-i18n]');
+    for (var i = 0; i < els.length; i++) {
+      var el = els[i];
+      var key = el.getAttribute('data-i18n');
+      if (t[key]) el.textContent = t[key];
+    }
+    var phs = document.querySelectorAll('[data-i18n-placeholder]');
+    for (var i = 0; i < phs.length; i++) {
+      var el = phs[i];
+      var key = el.getAttribute('data-i18n-placeholder');
+      if (t[key]) el.placeholder = t[key];
+    }
+    var maxTxt = (t.max_chars || 'Máx. %d car.').replace('%d', appConfig.maxSlugLength);
+    var lblSlug = document.getElementById('lblSlugDynamic');
+    if (lblSlug) lblSlug.textContent = (t.lbl_slug || 'Slug Personalizado') + ' (' + maxTxt + ')';
+    var lblHubSlug = document.getElementById('lblHubSlugDynamic');
+    if (lblHubSlug) lblHubSlug.textContent = (t.lbl_hub_slug || 'Slug') + ' (' + maxTxt + ')';
+  }
+
+  if (token) showApp();
+  changeLang(curLang);
+
+  function showToast(message, type) {
+    var toast = document.getElementById('toast');
+    toast.textContent = message;
+    toast.className = 'toast ' + type;
+    toast.style.display = 'block';
+    clearTimeout(toast._timeout);
+    requestAnimationFrame(function() { toast.classList.add('show'); });
+    toast._timeout = setTimeout(function() {
+      toast.classList.remove('show');
+      setTimeout(function() { toast.style.display = 'none'; }, 300);
+    }, 4000);
+  }
+
+  function authLogin() {
+    var val = document.getElementById('siteToken').value.trim();
+    var errorEl = document.getElementById('authError');
+    var t = currentDict || {};
+    if (!val) {
+      errorEl.textContent = t.msg_error_empty_token || '⚠️ El token no puede estar vacío';
+      errorEl.style.display = 'block';
+      return;
+    }
+    if (val.length < 8) {
+      errorEl.textContent = t.msg_error_short_token || '⚠️ El token debe tener al menos 8 caracteres';
+      errorEl.style.display = 'block';
+      return;
+    }
+    localStorage.setItem('gs_token', val);
+    token = val;
+    errorEl.style.display = 'none';
+    showApp();
+  }
+
+  function logout() {
+    localStorage.removeItem('gs_token');
+    token = null;
+    document.getElementById('authView').style.display = 'block';
+    document.getElementById('dashView').style.display = 'none';
+    document.getElementById('siteToken').value = '';
+    document.getElementById('authError').style.display = 'none';
+    showToast('✅', 'success');
+  }
+
+  async function showApp() {
+    try {
+      var testRes = await fetch('/api/links', { headers: { 'Authorization': 'Bearer ' + token } });
+      if (testRes.status === 401) {
+        var errorEl = document.getElementById('authError');
+        errorEl.textContent = currentDict.msg_error_auth || '❌ Token inválido o expirado';
+        errorEl.style.display = 'block';
+        localStorage.removeItem('gs_token');
+        token = null;
+        return;
+      }
+      if (!testRes.ok) throw new Error('HTTP ' + testRes.status);
+      document.getElementById('authView').style.display = 'none';
+      document.getElementById('dashView').style.display = 'block';
+      applyTranslations();
+      await loadConfig();
+      await loadStorage();
+      await loadLinks();
+    } catch (error) {
+      var errorEl = document.getElementById('authError');
+      errorEl.textContent = currentDict.msg_error_connection || '❌ Error de conexión';
+      errorEl.style.display = 'block';
+    }
+  }
+
+  async function loadConfig() {
+    try {
+      var res = await fetch('/api/config', { headers: { 'Authorization': 'Bearer ' + token } });
+      if (res.ok) {
+        appConfig = await res.json();
+        var slugInput = document.getElementById('slugInput');
+        if (slugInput) slugInput.setAttribute('maxlength', appConfig.maxSlugLength);
+        var hubSlug = document.getElementById('hubSlug');
+        if (hubSlug) hubSlug.setAttribute('maxlength', appConfig.maxSlugLength);
+        applyTranslations();
+      }
+    } catch (e) {}
+  }
+
+  function switchTab(tab) {
+    var tabs = ['links', 'hubs', 'analytics', 'flow'];
+    for (var i = 0; i < tabs.length; i++) {
+      var t = tabs[i];
+      var view = document.getElementById('view' + t.charAt(0).toUpperCase() + t.slice(1));
+      var tabBtn = document.getElementById('tab' + t.charAt(0).toUpperCase() + t.slice(1));
+      if (view) view.style.display = 'none';
+      if (tabBtn) tabBtn.classList.remove('active');
+    }
+    var view = document.getElementById('view' + tab.charAt(0).toUpperCase() + tab.slice(1));
+    var tabBtn = document.getElementById('tab' + tab.charAt(0).toUpperCase() + tab.slice(1));
+    if (view) view.style.display = 'block';
+    if (tabBtn) tabBtn.classList.add('active');
+    if (tab === 'links' || tab === 'hubs') loadLinks();
+    if (tab === 'analytics') loadAnalytics();
+    if (tab === 'flow') loadFlow();
+  }
+
+  function closeModals() {
+    var linkModal = document.getElementById('linkModal');
+    var hubModal = document.getElementById('hubModal');
+    if (linkModal) { linkModal.classList.remove('active'); linkModal.style.display = 'none'; }
+    if (hubModal) { hubModal.classList.remove('active'); hubModal.style.display = 'none'; }
+    var btn1 = document.getElementById('btnSaveLink');
+    var btn2 = document.getElementById('btnSaveHub');
+    if (btn1) { btn1.disabled = false; btn1.textContent = (currentDict.btn_save || 'Guardar'); }
+    if (btn2) { btn2.disabled = false; btn2.textContent = (currentDict.btn_save || 'Guardar'); }
+  }
+
+  function openLinkModal(isEdit) {
+    if (isEdit === undefined) isEdit = false;
+    var t = currentDict || {};
+    document.getElementById('linkModalTitle').textContent = isEdit ? (t.btn_edit || 'Editar') : (t.modal_link_title || '✨ Crear Enlace');
+    document.getElementById('linkStatusMsg').textContent = '';
+    document.getElementById('linkModalError').style.display = 'none';
+    document.getElementById('aiWarning').style.display = 'none';
+    document.getElementById('btnSaveLink').disabled = false;
+    document.getElementById('btnSaveLink').textContent = t.btn_save || 'Guardar';
+    if (!isEdit) {
+      document.getElementById('slugInput').value = '';
+      document.getElementById('targetUrl').value = '';
+      document.getElementById('linkPassword').value = '';
+      document.getElementById('expAmount').value = '';
+      document.getElementById('expUnit').value = 'minutes';
+      validateSlug(document.getElementById('slugInput'));
+    }
+    document.getElementById('linkModal').classList.add('active');
+    document.getElementById('linkModal').style.display = 'flex';
+    applyTranslations();
+  }
+
+  function openHubModal() {
+    var t = currentDict || {};
+    document.getElementById('hubStatusMsg').textContent = '';
+    document.getElementById('hubModalError').style.display = 'none';
+    document.getElementById('hubItemsRows').innerHTML = '';
+    document.getElementById('hubSlug').value = '';
+    document.getElementById('hubTitle').value = '';
+    document.getElementById('hubBio').value = '';
+    document.getElementById('hubPassword').value = '';
+    document.getElementById('btnSaveHub').disabled = false;
+    document.getElementById('btnSaveHub').textContent = t.btn_save || 'Guardar';
+    addHubItemRow();
+    document.getElementById('hubModal').classList.add('active');
+    document.getElementById('hubModal').style.display = 'flex';
+    applyTranslations();
+  }
+
+  function toggleHubMode() {
+    var isCustom = document.getElementById('hubMode').value === 'custom_html';
+    document.getElementById('hubBuilderWrap').style.display = isCustom ? 'none' : 'block';
+    document.getElementById('hubCustomHtmlWrap').style.display = isCustom ? 'block' : 'none';
+  }
+
+  function addHubItemRow(title, urlVal, isGs) {
+    if (title === undefined) title = '';
+    if (urlVal === undefined) urlVal = '';
+    if (isGs === undefined) isGs = true;
+    var t = currentDict || {};
+    var div = document.createElement('div');
+    div.className = 'hub-item-row';
+    div.style.cssText = 'display: flex; gap: 8px; margin-bottom: 8px; align-items: center; flex-wrap: wrap;';
+    var gsOptions = '';
+    for (var i = 0; i < loadedLinks.length; i++) {
+      var l = loadedLinks[i];
+      if (l.type === 'direct') {
+        var selected = (isGs && urlVal === l.slug) ? 'selected' : '';
+        gsOptions += '<option value="' + l.slug + '" ' + selected + '>/' + l.slug + '</option>';
+      }
+    }
+    if (gsOptions === '') gsOptions = '<option value="">—</option>';
+    var placeholder = t.placeholder_hub_link_text || 'Texto del botón';
+    var html = '';
+    html += '<input type="text" placeholder="' + placeholder + '" class="hi-title" value="' + title + '" style="flex:1; min-width: 130px;">';
+    html += '<select class="hi-type" onchange="toggleItemType(this)" style="width: 100px;">';
+    html += '<option value="gs" ' + (isGs ? 'selected' : '') + '>GS</option>';
+    html += '<option value="bare" ' + (!isGs ? 'selected' : '') + '>URL</option>';
+    html += '</select>';
+    html += '<select class="hi-gs-select" style="flex:1.5; min-width: 130px; ' + (!isGs ? 'display:none;' : '') + '">';
+    html += gsOptions;
+    html += '</select>';
+    html += '<input type="url" placeholder="https://..." class="hi-bare-url" value="' + (!isGs ? urlVal : '') + '" style="flex:1.5; min-width: 130px; ' + (isGs ? 'display:none;' : '') + '">';
+    html += '<button class="btn-icon" onclick="this.parentElement.remove()" style="color:#f87171;">✕</button>';
+    div.innerHTML = html;
+    document.getElementById('hubItemsRows').appendChild(div);
+  }
+
+  function toggleItemType(selectEl) {
+    var row = selectEl.parentElement;
+    var isGs = selectEl.value === 'gs';
+    row.querySelector('.hi-gs-select').style.display = isGs ? 'block' : 'none';
+    row.querySelector('.hi-bare-url').style.display = isGs ? 'none' : 'block';
+  }
+
+  function applyRandomSlug() {
+    var len = parseInt(document.getElementById('slugLen').value) || 6;
+    var mode = document.getElementById('slugMode').value || 'alphanumeric';
+    var chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+    if (mode === 'alpha') chars = 'abcdefghijklmnopqrstuvwxyz';
+    if (mode === 'numeric') chars = '0123456789';
+    var res = '';
+    for (var i = 0; i < len; i++) res += chars.charAt(Math.floor(Math.random() * chars.length));
+    document.getElementById('slugInput').value = res;
+    validateSlug(document.getElementById('slugInput'));
+  }
+
+  function validateSlug(el) {
+    var val = el.value.trim().toLowerCase();
+    var sanitized = val.replace(/[^a-z0-9_]/g, '');
+    if (sanitized !== val) { el.value = sanitized; val = sanitized; }
+    var count = document.getElementById('slugFeedback');
+    count.textContent = val.length + ' / ' + appConfig.maxSlugLength;
+    var reserved = ['gs', 'gs-files', 'favicon.ico', 'favicon.svg', 'robots.txt', 'sitemap.xml'];
+    if (reserved.indexOf(val) !== -1) {
+      count.textContent = (currentDict.msg_error_slug_reserved || '¡Ruta reservada!');
+      count.style.color = '#ef4444';
+    } else {
+      count.style.color = '#64748b';
+    }
+  }
+
+  async function genSlugAI() {
+    var t = currentDict || {};
+    var targetUrl = document.getElementById('targetUrl').value.trim();
+    var errorEl = document.getElementById('linkModalError');
+    var warningEl = document.getElementById('aiWarning');
+    if (!targetUrl) {
+      errorEl.textContent = t.msg_error_url_required || '❌ URL requerida';
+      errorEl.style.display = 'block';
+      return;
+    }
+    try { new URL(targetUrl); } catch(e) {
+      errorEl.textContent = t.msg_error_url_invalid || '❌ URL inválida';
+      errorEl.style.display = 'block';
+      return;
+    }
+    errorEl.style.display = 'none';
+    var slugLen = parseInt(document.getElementById('slugLen').value) || 6;
+    if (slugLen < 6) {
+      warningEl.textContent = t.ai_warning || '⚠️ Aviso';
+      warningEl.style.display = 'block';
+    } else {
+      warningEl.style.display = 'none';
+    }
+    var btn = document.getElementById('btnAiSlug');
+    var old = btn.textContent;
+    btn.textContent = t.ai_generating || '⏳...';
+    btn.disabled = true;
+    try {
+      var res = await fetch('/api/ai-slug', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ targetUrl: targetUrl, desiredLength: slugLen })
+      });
+      var data = null;
+      try { data = await res.json(); } catch(e) {}
+      btn.textContent = old;
+      btn.disabled = false;
+      if (!res.ok) {
+        errorEl.textContent = '❌ ' + ((data && data.error) || res.status);
+        errorEl.style.display = 'block';
+        if (res.status === 401) setTimeout(logout, 800);
+        return;
+      }
+      if (data.error) {
+        errorEl.textContent = '❌ ' + data.error;
+        errorEl.style.display = 'block';
+        return;
+      }
+      if (data.slug) {
+        document.getElementById('slugInput').value = data.slug.slice(0, appConfig.maxSlugLength);
+        validateSlug(document.getElementById('slugInput'));
+        if (data.warning) {
+          warningEl.textContent = data.warning;
+          warningEl.style.display = 'block';
+        }
+        showToast('✅ ' + data.slug, 'success');
+      }
+    } catch (error) {
+      btn.textContent = old;
+      btn.disabled = false;
+      errorEl.textContent = '❌ ' + (error.message || 'Error');
+      errorEl.style.display = 'block';
+    }
+  }
+
+  async function saveLink() {
+    var t = currentDict || {};
+    var btn = document.getElementById('btnSaveLink');
+    var slug = document.getElementById('slugInput').value.trim().toLowerCase();
+    var targetUrl = document.getElementById('targetUrl').value.trim();
+    var splat = document.getElementById('splat').checked;
+    var password = document.getElementById('linkPassword').value;
+    var expAmount = document.getElementById('expAmount').value;
+    var expUnit = document.getElementById('expUnit').value;
+    var msg = document.getElementById('linkStatusMsg');
+    var errorEl = document.getElementById('linkModalError');
+    errorEl.style.display = 'none';
+    btn.disabled = true;
+    try {
+      if (!targetUrl) { errorEl.textContent = t.msg_error_url_required || '❌ URL requerida'; errorEl.style.display = 'block'; return; }
+      try { new URL(targetUrl); } catch(e) { errorEl.textContent = t.msg_error_url_invalid || '❌ URL inválida'; errorEl.style.display = 'block'; return; }
+      if (!slug) { errorEl.textContent = t.msg_error_slug_required || '❌ Slug requerido'; errorEl.style.display = 'block'; return; }
+      if (!/^[a-z0-9_]+$/.test(slug)) { errorEl.textContent = t.msg_error_slug_format || '❌ Formato inválido'; errorEl.style.display = 'block'; return; }
+      msg.textContent = t.msg_loading || '...';
+      msg.style.color = '#94a3b8';
+      var res = await fetch('/api/create', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slug: slug, targetUrl: targetUrl, splat: splat, password: password, expAmount: expAmount, expUnit: expUnit })
+      });
+      var data = null;
+      try { data = await res.json(); } catch(e) {}
+      if (!res.ok) {
+        errorEl.textContent = '❌ ' + ((data && data.error) || res.status);
+        errorEl.style.display = 'block';
+        msg.textContent = '';
+        if (res.status === 401) setTimeout(logout, 800);
+        return;
+      }
+      msg.textContent = '✅';
+      msg.style.color = '#10b981';
+      showToast((t.msg_ok_link_created || '✅') + ' /' + slug, 'success');
+      setTimeout(function() { closeModals(); loadLinks(); loadStorage(); }, 400);
+    } catch (error) {
+      errorEl.textContent = '❌ ' + (error.message || 'Error');
+      errorEl.style.display = 'block';
+      msg.textContent = '';
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  async function saveHub() {
+    var t = currentDict || {};
+    var btn = document.getElementById('btnSaveHub');
+    var slug = document.getElementById('hubSlug').value.trim().toLowerCase();
+    var mode = document.getElementById('hubMode').value;
+    var title = document.getElementById('hubTitle').value.trim();
+    var bio = document.getElementById('hubBio').value.trim();
+    var theme_palette = document.getElementById('hubPalette').value;
+    var btn_style = document.getElementById('hubBtnStyle').value;
+    var custom_html = document.getElementById('hubCustomHtml').value;
+    var password = document.getElementById('hubPassword').value;
+    var msg = document.getElementById('hubStatusMsg');
+    var errorEl = document.getElementById('hubModalError');
+    errorEl.style.display = 'none';
+    btn.disabled = true;
+    try {
+      if (!slug) { errorEl.textContent = t.msg_error_slug_required || '❌ Slug requerido'; errorEl.style.display = 'block'; return; }
+      if (!/^[a-z0-9_]+$/.test(slug)) { errorEl.textContent = t.msg_error_slug_format || '❌ Formato inválido'; errorEl.style.display = 'block'; return; }
+      var items = [];
+      if (mode === 'builder') {
+        var rows = document.querySelectorAll('.hub-item-row');
+        for (var i = 0; i < rows.length; i++) {
+          var row = rows[i];
+          var titl = row.querySelector('.hi-title').value.trim();
+          var type = row.querySelector('.hi-type').value;
+          var u = type === 'gs' ? row.querySelector('.hi-gs-select').value : row.querySelector('.hi-bare-url').value.trim();
+          if (titl && u) items.push({ title: titl, url: u, is_gs: type === 'gs' });
+        }
+      }
+      msg.textContent = t.msg_loading || '...';
+      msg.style.color = '#94a3b8';
+      var res = await fetch('/api/save-hub', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slug: slug, mode: mode, title: title, bio: bio, theme_palette: theme_palette, btn_style: btn_style, custom_html: custom_html, password: password, items: items })
+      });
+      var data = null;
+      try { data = await res.json(); } catch(e) {}
+      if (!res.ok) {
+        errorEl.textContent = '❌ ' + ((data && data.error) || res.status);
+        errorEl.style.display = 'block';
+        msg.textContent = '';
+        if (res.status === 401) setTimeout(logout, 800);
+        return;
+      }
+      msg.textContent = '✅';
+      msg.style.color = '#10b981';
+      showToast((t.msg_ok_hub_created || '✅') + ' /' + slug, 'success');
+      setTimeout(function() { closeModals(); loadLinks(); loadStorage(); }, 400);
+    } catch (error) {
+      errorEl.textContent = '❌ ' + (error.message || 'Error');
+      errorEl.style.display = 'block';
+      msg.textContent = '';
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  async function loadLinks() {
+    var t = currentDict || {};
+    var loading = document.getElementById('linksLoading');
+    var errorEl = document.getElementById('linksError');
+    var container = document.getElementById('linksTableContainer');
+    var hubsLoading = document.getElementById('hubsLoading');
+    var hubsError = document.getElementById('hubsError');
+    var hubsContainer = document.getElementById('hubsTableContainer');
+    loading.style.display = 'block';
+    errorEl.style.display = 'none';
+    container.style.display = 'none';
+    hubsLoading.style.display = 'block';
+    hubsError.style.display = 'none';
+    hubsContainer.style.display = 'none';
+    try {
+      var res = await fetch('/api/links', { headers: { 'Authorization': 'Bearer ' + token } });
+      if (res.status === 401) { setTimeout(logout, 100); return; }
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      var data = await res.json();
+      if (!Array.isArray(data)) throw new Error('Invalid');
+      loadedLinks = data;
+      renderTables(data);
+      loading.style.display = 'none';
+      container.style.display = 'block';
+      hubsLoading.style.display = 'none';
+      hubsContainer.style.display = 'block';
+    } catch (error) {
+      loading.style.display = 'none';
+      hubsLoading.style.display = 'none';
+      errorEl.textContent = (t.msg_error_connection || '❌') + ' ' + error.message;
+      errorEl.style.display = 'block';
+      hubsError.textContent = (t.msg_error_connection || '❌') + ' ' + error.message;
+      hubsError.style.display = 'block';
+    }
+  }
+
+  function renderTables(list) {
+    var t = currentDict || {};
+    var linksTbody = document.querySelector('#linksTable tbody');
+    var hubsTbody = document.querySelector('#hubsTable tbody');
+    linksTbody.innerHTML = '';
+    hubsTbody.innerHTML = '';
+    var directLinks = list.filter(function(l) { return l.type === 'direct'; });
+    var hubs = list.filter(function(l) { return l.type === 'group'; });
+
+    for (var i = 0; i < directLinks.length; i++) {
+      var l = directLinks[i];
+      var tr = document.createElement('tr');
+      var checked = selectedLinks.has(l.slug) ? 'checked' : '';
+      var lockTag = l.password ? '<span class="tag tag-lock">🔒</span>' : '';
+      var expTag = '';
+      if (l.expires_at) {
+        var diff = Number(l.expires_at) - Date.now();
+        expTag = diff <= 0 ? ' <span class="tag tag-bot">' + (t.label_expired || 'EXP') + '</span>' : '';
+      }
+      tr.innerHTML = '<td class="checkbox-cell"><input type="checkbox" data-slug="' + l.slug + '" data-type="links" ' + checked + ' onchange="toggleItem(this)"></td>' +
+        '<td style="font-weight:700; color:#10b981;">/' + l.slug + '</td>' +
+        '<td style="color:#94a3b8; font-size:12px; max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">' + l.target_url + '</td>' +
+        '<td>' + lockTag + expTag + '</td>' +
+        '<td style="font-weight:800; color:#10b981; font-size:14px;">' + l.clicks + '</td>' +
+        '<td><div class="btn-group">' +
+        '<button class="btn-action" onclick="copyUrl(\'' + l.slug + '\', this)">📋</button>' +
+        '<button class="btn-action" onclick="editLink(\'' + l.slug + '\')">✏️</button>' +
+        '<button class="btn-action btn-del" onclick="delItem(\'' + l.slug + '\')">🗑️</button>' +
+        '</div></td>';
+      linksTbody.appendChild(tr);
+    }
+
+    for (var i = 0; i < hubs.length; i++) {
+      var l = hubs[i];
+      var tr = document.createElement('tr');
+      var checked = selectedHubs.has(l.slug) ? 'checked' : '';
+      var lockTag = l.password ? '<span class="tag tag-lock">🔒</span>' : '';
+      tr.innerHTML = '<td class="checkbox-cell"><input type="checkbox" data-slug="' + l.slug + '" data-type="hubs" ' + checked + ' onchange="toggleItem(this)"></td>' +
+        '<td style="font-weight:700; color:#a5b4fc;">/' + l.slug + '</td>' +
+        '<td style="color:#e2e8f0; font-size:12px;">' + (t.label_hub || 'Conjunto') + '</td>' +
+        '<td><span class="tag tag-hub">Hub</span> ' + lockTag + '</td>' +
+        '<td style="font-weight:800; color:#10b981; font-size:14px;">' + l.clicks + '</td>' +
+        '<td><div class="btn-group">' +
+        '<button class="btn-action" onclick="copyUrl(\'' + l.slug + '\', this)">📋</button>' +
+        '<button class="btn-action" onclick="editHub(\'' + l.slug + '\')">✏️</button>' +
+        '<button class="btn-action btn-del" onclick="delItem(\'' + l.slug + '\')">🗑️</button>' +
+        '</div></td>';
+      hubsTbody.appendChild(tr);
+    }
+
+    if (directLinks.length === 0) linksTbody.innerHTML = '<tr><td colspan="6" class="empty-state">' + (t.empty_links || 'No hay enlaces') + '</td></tr>';
+    if (hubs.length === 0) hubsTbody.innerHTML = '<tr><td colspan="6" class="empty-state">' + (t.empty_hubs || 'No hay conjuntos') + '</td></tr>';
+
+    updateBulkBar('links');
+    updateBulkBar('hubs');
+    updateSelectAllCheckbox('links', directLinks);
+    updateSelectAllCheckbox('hubs', hubs);
+  }
+
+  function toggleItem(checkbox) {
+    var slug = checkbox.getAttribute('data-slug');
+    var type = checkbox.getAttribute('data-type');
+    var set = type === 'links' ? selectedLinks : selectedHubs;
+    if (checkbox.checked) set.add(slug); else set.delete(slug);
+    updateBulkBar(type);
+  }
+
+  function toggleSelectAll(type, checked) {
+    var set = type === 'links' ? selectedLinks : selectedHubs;
+    set.clear();
+    var rows = document.querySelectorAll('#' + type + 'Table tbody input[type="checkbox"]');
+    for (var i = 0; i < rows.length; i++) {
+      var slug = rows[i].getAttribute('data-slug');
+      if (slug && checked) { set.add(slug); rows[i].checked = true; }
+      else rows[i].checked = false;
+    }
+    updateBulkBar(type);
+  }
+
+  function updateSelectAllCheckbox(type, items) {
+    var selectAll = document.getElementById(type + 'SelectAll');
+    if (!selectAll) return;
+    var set = type === 'links' ? selectedLinks : selectedHubs;
+    if (items.length === 0) { selectAll.checked = false; selectAll.indeterminate = false; return; }
+    var allSelected = items.every(function(it) { return set.has(it.slug); });
+    var someSelected = items.some(function(it) { return set.has(it.slug); });
+    selectAll.checked = allSelected;
+    selectAll.indeterminate = someSelected && !allSelected;
+  }
+
+  function updateBulkBar(type) {
+    var bar = document.getElementById(type + 'BulkBar');
+    var countSpan = document.getElementById(type + 'SelectedCount');
+    var set = type === 'links' ? selectedLinks : selectedHubs;
+    if (set.size > 0) {
+      bar.classList.add('active');
+      var tmpl = (currentDict.msg_selected || '%d seleccionado(s)');
+      countSpan.textContent = tmpl.replace('%d', set.size);
+    } else {
+      bar.classList.remove('active');
+    }
+  }
+
+  function clearSelection(type) {
+    var set = type === 'links' ? selectedLinks : selectedHubs;
+    set.clear();
+    var rows = document.querySelectorAll('#' + type + 'Table tbody input[type="checkbox"]');
+    for (var i = 0; i < rows.length; i++) rows[i].checked = false;
+    updateBulkBar(type);
+    var selectAll = document.getElementById(type + 'SelectAll');
+    if (selectAll) { selectAll.checked = false; selectAll.indeterminate = false; }
+  }
+
+  async function bulkDelete(type) {
+    var set = type === 'links' ? selectedLinks : selectedHubs;
+    if (set.size === 0) return;
+    var tmpl = (currentDict.msg_confirm_bulk || '¿Eliminar %d?');
+    if (!confirm(tmpl.replace('%d', set.size))) return;
+    var slugs = Array.from(set);
+    try {
+      var res = await fetch('/api/delete', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slugs: slugs })
+      });
+      if (res.status === 401) { setTimeout(logout, 100); return; }
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      showToast('✅ ' + slugs.length, 'success');
+      set.clear();
+      await loadLinks();
+      await loadStorage();
+    } catch (error) {
+      showToast('❌ ' + error.message, 'error');
+    }
+  }
+
+  function copyUrl(slug, btn) {
+    var full = window.location.origin + '/' + slug;
+    navigator.clipboard.writeText(full).then(function() {
+      var old = btn.textContent;
+      btn.textContent = '✅';
+      btn.style.color = '#10b981';
+      setTimeout(function() { btn.textContent = old; btn.style.color = ''; }, 1200);
+      showToast('✅', 'success');
+    }).catch(function() { showToast('❌', 'error'); });
+  }
+
+  function editLink(slug) {
+    var item = null;
+    for (var i = 0; i < loadedLinks.length; i++) {
+      if (loadedLinks[i].slug === slug) { item = loadedLinks[i]; break; }
+    }
+    if (!item) { showToast('❌', 'error'); return; }
+    openLinkModal(true);
+    document.getElementById('slugInput').value = item.slug;
+    document.getElementById('targetUrl').value = item.target_url;
+    document.getElementById('splat').checked = item.splat === 1;
+    document.getElementById('linkPassword').value = item.password || '';
+  }
+
+  async function editHub(slug) {
+    try {
+      var res = await fetch('/api/hub-config?slug=' + encodeURIComponent(slug), {
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      if (res.status === 401) { setTimeout(logout, 100); return; }
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      var hub = await res.json();
+      document.getElementById('hubSlug').value = slug;
+      document.getElementById('hubMode').value = hub.mode || 'builder';
+      document.getElementById('hubPassword').value = hub.password || '';
+      toggleHubMode();
+      if (hub.mode === 'custom_html') {
+        document.getElementById('hubCustomHtml').value = hub.custom_html || '';
+      } else {
+        document.getElementById('hubTitle').value = hub.title || '';
+        document.getElementById('hubBio').value = hub.bio || '';
+        document.getElementById('hubPalette').value = hub.theme_palette || 'emerald';
+        document.getElementById('hubBtnStyle').value = hub.btn_style || 'rounded';
+        var container = document.getElementById('hubItemsRows');
+        container.innerHTML = '';
+        var items = [];
+        try { items = JSON.parse(hub.items_json || '[]'); } catch(e) {}
+        if (items.length) {
+          for (var i = 0; i < items.length; i++) addHubItemRow(items[i].title, items[i].url, items[i].is_gs);
+        } else {
+          addHubItemRow();
+        }
+      }
+      document.getElementById('hubModal').classList.add('active');
+      document.getElementById('hubModal').style.display = 'flex';
+      applyTranslations();
+    } catch (error) {
+      showToast('❌ ' + error.message, 'error');
+    }
+  }
+
+  async function delItem(slug) {
+    var tmpl = (currentDict.msg_confirm_delete || '¿Eliminar /%s?');
+    if (!confirm(tmpl.replace('%s', slug))) return;
+    try {
+      var res = await fetch('/api/delete', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slug: slug })
+      });
+      if (res.status === 401) { setTimeout(logout, 100); return; }
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      showToast('✅', 'success');
+      await loadLinks();
+      await loadStorage();
+    } catch (error) {
+      showToast('❌ ' + error.message, 'error');
+    }
+  }
+
+  async function loadStorage() {
+    var badge = document.getElementById('dbStorage');
+    var t = currentDict || {};
+    badge.textContent = t.storage_loading || '⏳';
+    badge.title = '';
+    try {
+      var res = await fetch('/api/storage', { headers: { 'Authorization': 'Bearer ' + token } });
+      if (res.status === 401) { setTimeout(logout, 100); return; }
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      var data = await res.json();
+      if (data.usedMB !== undefined) {
+        badge.textContent = data.usedMB + ' MB / ' + data.totalMB + ' MB';
+        badge.title = (t.storage_used || 'Usado') + ': ' + data.usedMB + ' MB\n' +
+                      (t.storage_free || 'Libre') + ': ' + data.freeMB + ' MB\n' +
+                      'Total: ' + data.totalMB + ' MB';
+        badge.style.color = '#10b981';
+      } else {
+        badge.textContent = '⚠️';
+        badge.style.color = '#f59e0b';
+      }
+    } catch (error) {
+      badge.textContent = '⚠️ ' + (t.storage_offline || 'Offline');
+      badge.style.color = '#ef4444';
+    }
+  }
+
+  async function loadAnalytics() {
+    var t = currentDict || {};
+    var loading = document.getElementById('analyticsLoading');
+    var errorEl = document.getElementById('analyticsError');
+    var container = document.getElementById('analyticsTableContainer');
+    loading.style.display = 'block';
+    errorEl.style.display = 'none';
+    container.style.display = 'none';
+    try {
+      var res = await fetch('/api/analytics', { headers: { 'Authorization': 'Bearer ' + token } });
+      if (res.status === 401) { setTimeout(logout, 100); return; }
+      if (!res.ok) {
+        var errData = null;
+        try { errData = await res.json(); } catch(e) {}
+        throw new Error((errData && errData.error) || ('HTTP ' + res.status));
+      }
+      var list = await res.json();
+      if (!Array.isArray(list)) throw new Error('Invalid');
+      var tbody = document.getElementById('analyticsBody');
+      tbody.innerHTML = '';
+      if (list.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="empty-state">' + (t.msg_no_data || 'No hay datos') + '</td></tr>';
+      } else {
+        for (var i = 0; i < list.length; i++) {
+          var a = list[i];
+          var tr = document.createElement('tr');
+          tr.innerHTML = '<td style="font-weight:700; color:#10b981;">/' + a.slug + '</td>' +
+            '<td>' + (a.country || 'XX') + '</td>' +
+            '<td><span class="tag ' + (a.is_bot ? 'tag-bot' : 'tag-human') + '">' + (a.is_bot ? (t.label_bot || 'Bot') : (t.label_human || 'Humano')) + '</span></td>' +
+            '<td style="font-size:11px; color:#64748b;">' + a.created_at + '</td>' +
+            '<td style="font-size:11px; color:#94a3b8; max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">' + (a.user_agent || 'N/A') + '</td>';
+          tbody.appendChild(tr);
+        }
+      }
+      loading.style.display = 'none';
+      container.style.display = 'block';
+    } catch (error) {
+      loading.style.display = 'none';
+      errorEl.textContent = '❌ ' + error.message;
+      errorEl.style.display = 'block';
+    }
+  }
+
+  async function loadFlow() {
+    var t = currentDict || {};
+    var loading = document.getElementById('flowLoading');
+    var errorEl = document.getElementById('flowError');
+    var container = document.getElementById('flowTableContainer');
+    var onlyHumans = document.getElementById('flowOnlyHumans').checked;
+    var limit = document.getElementById('flowLimit').value;
+    loading.style.display = 'block';
+    errorEl.style.display = 'none';
+    container.style.display = 'none';
+    try {
+      var res = await fetch('/api/flow?limit=' + limit + '&humans=' + onlyHumans, {
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      if (res.status === 401) { setTimeout(logout, 100); return; }
+      if (!res.ok) {
+        var errData = null;
+        try { errData = await res.json(); } catch(e) {}
+        throw new Error((errData && errData.error) || ('HTTP ' + res.status));
+      }
+      var list = await res.json();
+      if (!Array.isArray(list)) throw new Error('Invalid');
+      var tbody = document.getElementById('flowBody');
+      tbody.innerHTML = '';
+      if (list.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="empty-state">' + (t.msg_no_data || 'No hay datos') + '</td></tr>';
+      } else {
+        for (var i = 0; i < list.length; i++) {
+          var a = list[i];
+          var tr = document.createElement('tr');
+          tr.innerHTML = '<td style="font-weight:700; color:#10b981;">/' + a.slug + '</td>' +
+            '<td style="font-size:11px; color:#64748b;">' + getTimeAgo(a.timestamp) + '</td>' +
+            '<td><span class="tag ' + (a.is_bot ? 'tag-bot' : 'tag-human') + '">' + (a.is_bot ? (t.label_bot || 'Bot') : (t.label_human || 'Humano')) + '</span></td>' +
+            '<td>' + (a.country || 'XX') + '</td>' +
+            '<td style="font-size:11px; color:#94a3b8; max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">' + (a.referrer || '—') + '</td>';
+          tbody.appendChild(tr);
+        }
+      }
+      loading.style.display = 'none';
+      container.style.display = 'block';
+    } catch (error) {
+      loading.style.display = 'none';
+      errorEl.textContent = '❌ ' + error.message;
+      errorEl.style.display = 'block';
+    }
+  }
+
+  function getTimeAgo(timestamp) {
+    var diff = Date.now() - new Date(timestamp).getTime();
+    var mins = Math.floor(diff / 60000);
+    if (mins < 1) return 'ahora';
+    if (mins < 60) return mins + 'm';
+    var hours = Math.floor(mins / 60);
+    if (hours < 24) return hours + 'h';
+    var days = Math.floor(hours / 24);
+    return days + 'd';
+  }
+
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeModals();
+    if (e.key === 'Enter' && document.getElementById('authView').style.display !== 'none') {
+      authLogin();
+    }
+  });
+</script>
+</body>
+</html>
