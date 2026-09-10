@@ -49,7 +49,7 @@ export async function onRequest(context) {
         }
       }
 
-      // ✅ Listar enlaces CON conteo de clics desde Analytics Engine
+      // Listar enlaces CON conteo de clics desde Analytics Engine
       if (action === "links" && request.method === "GET") {
         const { results } = await env.DB.prepare(
           "SELECT slug, type, target_url, splat, password, expires_at, created_at FROM links ORDER BY created_at DESC"
@@ -95,12 +95,14 @@ export async function onRequest(context) {
         const { targetUrl, desiredLength } = await request.json();
         if (!targetUrl) return json({ error: "Falta URL" }, 400);
         if (!env.AI) return json({ error: "Binding 'AI' no encontrado" }, 400);
-        const slugLength = parseInt(desiredLength) || 6;
-        let warning = slugLength < 6 ? "⚠️ La IA puede devolver un slug de baja calidad con menos de 6 caracteres" : null;
+
+        const slugLength = Math.max(3, Math.min(parseInt(desiredLength) || 6, MAX_SLUG_LENGTH));
+        const minLen = Math.max(3, slugLength - 2);
+
         let contextText = "";
         try {
           const targetObj = new URL(targetUrl);
-          contextText = `Dominio: ${targetObj.hostname} Ruta: ${targetObj.pathname.replace(/[\/-]/g, " ")}`;
+          contextText = `Domain: ${targetObj.hostname} Path: ${targetObj.pathname.replace(/[\/-]/g, " ")}`;
           const controller = new AbortController();
           const timeoutId = setTimeout(() => controller.abort(), 3000);
           const res = await fetch(targetUrl, {
@@ -112,29 +114,53 @@ export async function onRequest(context) {
             const html = await res.text();
             const title = html.match(/<title[^>]*>([^<]+)<\/title>/i)?.[1] || "";
             const desc = html.match(/<meta[^>]*name=["']description["'][^>]*content=["']([^"']*)["']/i)?.[1] || "";
-            if (title || desc) contextText = `Titulo: ${title}. Descripcion: ${desc}`;
+            if (title || desc) contextText = `Title: ${title}. Description: ${desc}`;
           }
         } catch {}
+
+        const model = env.AI_MODEL || "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
+        const messages = [
+          {
+            role: "system",
+            content: `You generate short ASCII slugs for URLs. Rules: only lowercase letters a-z, numbers 0-9 and underscores _, between ${minLen} and ${slugLength} characters, no spaces. Respond ONLY with the slug, no quotes, no formatting, no explanations.`
+          },
+          { role: "user", content: contextText.slice(0, 400) || targetUrl }
+        ];
+
+        let aiRes;
         try {
-          // ✅ Modelo válido con fallback a variable de entorno
-     const model = env.AI_MODEL || "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
-     const aiRes = await env.AI.run(model, {
-       messages: [
-           { role: "system", content: `Genera exclusivamente un slug corto de EXACTAMENTE ${slugLength} caracteres (palabras unidas por guiones, minúsculas, sin números ni caracteres especiales) representativo del contenido. Responde ÚNICAMENTE con el slug sin formato ni comillas.` },
-           { role: "user", content: contextText.slice(0, 400) }
-            ]
-           });
-          let cleanSlug = (aiRes.response || "").trim().toLowerCase().replace(/["'`\n\r]/g, "").replace(/[^a-z0-9_]/g, "").replace(/^-+|-+$/g, "");
-          if (cleanSlug.length < slugLength) {
-            const padding = genRandomSlug(slugLength - cleanSlug.length, "alphanumeric");
-            cleanSlug = cleanSlug + padding;
-            cleanSlug = cleanSlug.slice(0, slugLength);
+          aiRes = await env.AI.run(model, { messages });
+        } catch (err) {
+          const fallback = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
+          if (model !== fallback) {
+            try {
+              aiRes = await env.AI.run(fallback, { messages });
+            } catch (e2) {
+              return json({ error: "Error en Workers AI: " + (e2.message || "Fallo interno") }, 500);
+            }
+          } else {
+            return json({ error: "Error en Workers AI: " + (err.message || "Fallo interno") }, 500);
           }
-          if (!cleanSlug) cleanSlug = genRandomSlug(slugLength);
-          return json({ slug: cleanSlug.slice(0, MAX_SLUG_LENGTH), warning });
-        } catch (e) {
-          return json({ error: "Error en Workers AI: " + (e.message || "Fallo interno") }, 500);
         }
+
+        let cleanSlug = (aiRes.response || "")
+          .trim()
+          .toLowerCase()
+          .replace(/["'`\n\r]/g, "")
+          .replace(/[^a-z0-9_]/g, "_")
+          .replace(/_+/g, "_")
+          .replace(/^_+|_+$/g, "");
+
+        if (!cleanSlug) cleanSlug = genRandomSlug(slugLength, "alphanumeric");
+
+        if (cleanSlug.length > slugLength) {
+          cleanSlug = cleanSlug.slice(0, slugLength).replace(/_+$/g, "");
+        }
+        if (cleanSlug.length < slugLength) {
+          cleanSlug = cleanSlug + genRandomSlug(slugLength - cleanSlug.length, "alphanumeric");
+        }
+
+        return json({ slug: cleanSlug.slice(0, MAX_SLUG_LENGTH) });
       }
 
       if (action === "create" && request.method === "POST") {
