@@ -84,6 +84,7 @@
     .btn-danger { background: linear-gradient(135deg, #7f1d1d 0%, #991b1b 100%); border: none; color: #fca5a5; padding: 9px 14px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; text-align: center; transition: all 0.2s; }
     .btn-danger:hover { background: linear-gradient(135deg, #991b1b 0%, #b91c1c 100%); }
     .btn-icon { background: none; border: none; color: #94a3b8; padding: 8px; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s; }
+    .btn-icon:hover { background: #1b2620; color: #10b981; }
 
     .table-container { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: 12px; }
     table { width: 100%; border-collapse: collapse; font-size: 13px; }
@@ -294,14 +295,14 @@
     </div>
     <div>
       <label id="lblSlugDynamic" data-i18n="lbl_slug">Slug Personalizado</label>
-      <input type="text" id="slugInput" maxlength="20" placeholder="mi_enlace" data-i18n-placeholder="placeholder_slug" oninput="validateSlug(this)">
+      <input type="text" id="slugInput" maxlength="20" placeholder="mi_enlace/hub" data-i18n-placeholder="placeholder_slug" oninput="validateSlug(this)">
       <div id="slugFeedback" style="font-size:11px;color:#64748b;text-align:right;margin-top:4px;">0 / 20</div>
     </div>
     <div class="grid-2">
       <div>
         <label data-i18n="lbl_random">Generar Aleatorio</label>
         <div style="display:flex;gap:6px;">
-          <input type="number" id="slugLen" min="1" max="20" value="6" style="width:70px;">
+          <input type="number" id="slugLen" min="3" max="20" value="6" style="width:70px;">
           <select id="slugMode"><option value="alphanumeric">Alfanum.</option><option value="alpha">Letras</option><option value="numeric">Núm.</option></select>
           <button class="btn-secondary" onclick="applyRandomSlug()">🎲</button>
         </div>
@@ -356,7 +357,7 @@
     <div class="grid-2">
       <div>
         <label id="lblHubSlugDynamic" data-i18n="lbl_hub_slug">Slug</label>
-        <input type="text" id="hubSlug" maxlength="20" placeholder="mis_enlaces" data-i18n-placeholder="placeholder_hub_slug">
+        <input type="text" id="hubSlug" maxlength="20" placeholder="mis_enlaces/hub" data-i18n-placeholder="placeholder_hub_slug" oninput="validateSlug(this)">
       </div>
       <div>
         <label data-i18n="lbl_hub_mode">Modo</label>
@@ -424,9 +425,9 @@
   async function loadLocale(lang) {
     if (DICT_CACHE[lang]) return DICT_CACHE[lang];
     try {
-      var res = await fetch('/gs-files/locales/' + lang + '.json');
+      var res = await fetch('/gs-files/locales/' + lang + '.json?v=' + Date.now());
       if (!res.ok) {
-        var fallback = await fetch('/gs-files/locales/es_es.json');
+        var fallback = await fetch('/gs-files/locales/es_es.json?v=' + Date.now());
         var data = await fallback.json();
         DICT_CACHE[lang] = data;
         return data;
@@ -435,7 +436,7 @@
       DICT_CACHE[lang] = data;
       return data;
     } catch {
-      var fallback = await fetch('/gs-files/locales/es_es.json');
+      var fallback = await fetch('/gs-files/locales/es_es.json?v=' + Date.now());
       var data = await fallback.json();
       DICT_CACHE[lang] = data;
       return data;
@@ -478,8 +479,11 @@
     if (lblHubSlug) lblHubSlug.textContent = (t.lbl_hub_slug || 'Slug') + ' (' + maxTxt + ')';
   }
 
-  if (token) showApp();
-  changeLang(curLang);
+  (async function init() {
+    currentDict = await loadLocale(curLang);
+    applyTranslations();
+    if (token) await showApp();
+  })();
 
   function showToast(message, type) {
     var toast = document.getElementById('toast');
@@ -558,6 +562,12 @@
         if (slugInput) slugInput.setAttribute('maxlength', appConfig.maxSlugLength);
         var hubSlug = document.getElementById('hubSlug');
         if (hubSlug) hubSlug.setAttribute('maxlength', appConfig.maxSlugLength);
+        var slugLen = document.getElementById('slugLen');
+        if (slugLen) {
+          slugLen.setAttribute('min', 3);
+          slugLen.setAttribute('max', appConfig.maxSlugLength);
+          if (parseInt(slugLen.value) > appConfig.maxSlugLength) slugLen.value = appConfig.maxSlugLength;
+        }
         applyTranslations();
       }
     } catch (e) {}
@@ -679,6 +689,8 @@
 
   function applyRandomSlug() {
     var len = parseInt(document.getElementById('slugLen').value) || 6;
+    if (len < 3) len = 3;
+    if (len > appConfig.maxSlugLength) len = appConfig.maxSlugLength;
     var mode = document.getElementById('slugMode').value || 'alphanumeric';
     var chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
     if (mode === 'alpha') chars = 'abcdefghijklmnopqrstuvwxyz';
@@ -690,31 +702,24 @@
   }
 
   function validateSlug(el) {
-  var val = el.value.toLowerCase();
-  var count = document.getElementById('slugFeedback');
-  count.textContent = val.length + ' / ' + appConfig.maxSlugLength;
-  
-  var reserved = ['gs', 'gs-files', 'favicon.ico', 'favicon.svg', 'robots.txt', 'sitemap.xml'];
-  var firstSegment = val.split('/')[0];
-  
-  // Validaciones visuales (sin modificar el input)
-  if (reserved.indexOf(firstSegment) !== -1) {
-    count.textContent = (currentDict.msg_error_slug_reserved || '¡Ruta reservada!');
-    count.style.color = '#ef4444';
-  } else if (val.endsWith('/')) {
-    count.textContent = val.length + ' / ' + appConfig.maxSlugLength + ' ⚠️';
-    count.style.color = '#f59e0b';
-  } else if (val.startsWith('/')) {
-    count.textContent = val.length + ' / ' + appConfig.maxSlugLength + ' ⚠️';
-    count.style.color = '#f59e0b';
-  } else if (val.includes('//')) {
-    count.textContent = val.length + ' / ' + appConfig.maxSlugLength + ' ⚠️';
-    count.style.color = '#f59e0b';
-  } else {
-    count.style.color = '#64748b';
+    var val = el.value.toLowerCase();
+    var count = document.getElementById('slugFeedback');
+    if (!count) return;
+    count.textContent = val.length + ' / ' + appConfig.maxSlugLength;
+    
+    var reserved = ['gs', 'gs-files', 'favicon.ico', 'favicon.svg', 'robots.txt', 'sitemap.xml'];
+    var firstSegment = val.split('/')[0];
+    
+    if (reserved.indexOf(firstSegment) !== -1) {
+      count.textContent = (currentDict.msg_error_slug_reserved || '¡Ruta reservada!');
+      count.style.color = '#ef4444';
+    } else if (val.endsWith('/') || val.startsWith('/') || val.includes('//')) {
+      count.textContent = val.length + ' / ' + appConfig.maxSlugLength + ' ⚠️';
+      count.style.color = '#f59e0b';
+    } else {
+      count.style.color = '#64748b';
+    }
   }
-}
-
 
   async function genSlugAI() {
     var t = currentDict || {};
@@ -733,6 +738,8 @@
     }
     errorEl.style.display = 'none';
     var slugLen = parseInt(document.getElementById('slugLen').value) || 6;
+    if (slugLen < 3) slugLen = 3;
+    if (slugLen > appConfig.maxSlugLength) slugLen = appConfig.maxSlugLength;
     if (slugLen < 6) {
       warningEl.textContent = t.ai_warning || '⚠️ Aviso';
       warningEl.style.display = 'block';
@@ -767,10 +774,6 @@
       if (data.slug) {
         document.getElementById('slugInput').value = data.slug.slice(0, appConfig.maxSlugLength);
         validateSlug(document.getElementById('slugInput'));
-        if (data.warning) {
-          warningEl.textContent = data.warning;
-          warningEl.style.display = 'block';
-        }
         showToast('✅ ' + data.slug, 'success');
       }
     } catch (error) {
@@ -782,133 +785,103 @@
   }
 
   async function saveLink() {
-  var t = currentDict || {};
-  var btn = document.getElementById('btnSaveLink');
-  
-  // Sanitizar el slug
-  var slug = document.getElementById('slugInput').value.toLowerCase();
-  slug = slug.replace(/[^a-z0-9_\/]/g, '');
-  slug = slug.replace(/^\/+/, '');
-  slug = slug.replace(/\/+/g, '/');
-  slug = slug.replace(/\/+$/, '');
-  document.getElementById('slugInput').value = slug;
-  
-  var targetUrl = document.getElementById('targetUrl').value.trim();
-  var splat = document.getElementById('splat').checked;
-  var password = document.getElementById('linkPassword').value;
-  var expAmount = document.getElementById('expAmount').value;
-  var expUnit = document.getElementById('expUnit').value;
-  var msg = document.getElementById('linkStatusMsg');
-  var errorEl = document.getElementById('linkModalError');
-  errorEl.style.display = 'none';
-  btn.disabled = true;
-  try {
-    if (!targetUrl) { errorEl.textContent = t.msg_error_url_required || '❌ URL requerida'; errorEl.style.display = 'block'; return; }
-    try { new URL(targetUrl); } catch(e) { errorEl.textContent = t.msg_error_url_invalid || '❌ URL inválida'; errorEl.style.display = 'block'; return; }
-    if (!slug) { errorEl.textContent = t.msg_error_slug_required || '❌ Slug requerido'; errorEl.style.display = 'block'; return; }
-    if (!/^[a-z0-9_\/]+$/.test(slug) || slug.startsWith('/') || slug.endsWith('/') || slug.includes('//')) {
-      errorEl.textContent = t.msg_error_slug_format || '❌ Formato inválido';
-      errorEl.style.display = 'block';
-      return;
-    }
-    msg.textContent = t.msg_loading || '...';
-    msg.style.color = '#94a3b8';
-    var res = await fetch('/api/create', {
-      method: 'POST',
-      headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ slug: slug, targetUrl: targetUrl, splat: splat, password: password, expAmount: expAmount, expUnit: expUnit })
-    });
-    var data = null;
-    try { data = await res.json(); } catch(e) {}
-    if (!res.ok) {
-      errorEl.textContent = '❌ ' + ((data && data.error) || res.status);
+    var t = currentDict || {};
+    var btn = document.getElementById('btnSaveLink');
+    
+    var slug = document.getElementById('slugInput').value.toLowerCase();
+    slug = slug.replace(/[^a-z0-9_\/]/g, '');
+    slug = slug.replace(/^\/+/, '');
+    slug = slug.replace(/\/+/g, '/');
+    slug = slug.replace(/\/+$/, '');
+    document.getElementById('slugInput').value = slug;
+    
+    var targetUrl = document.getElementById('targetUrl').value.trim();
+    var splat = document.getElementById('splat').checked;
+    var password = document.getElementById('linkPassword').value;
+    var expAmount = document.getElementById('expAmount').value;
+    var expUnit = document.getElementById('expUnit').value;
+    var msg = document.getElementById('linkStatusMsg');
+    var errorEl = document.getElementById('linkModalError');
+    errorEl.style.display = 'none';
+    btn.disabled = true;
+    try {
+      if (!targetUrl) { errorEl.textContent = t.msg_error_url_required || '❌ URL requerida'; errorEl.style.display = 'block'; return; }
+      try { new URL(targetUrl); } catch(e) { errorEl.textContent = t.msg_error_url_invalid || '❌ URL inválida'; errorEl.style.display = 'block'; return; }
+      if (!slug) { errorEl.textContent = t.msg_error_slug_required || '❌ Slug requerido'; errorEl.style.display = 'block'; return; }
+      if (!/^[a-z0-9_\/]+$/.test(slug) || slug.startsWith('/') || slug.endsWith('/') || slug.includes('//')) {
+        errorEl.textContent = t.msg_error_slug_format || '❌ Formato inválido';
+        errorEl.style.display = 'block';
+        return;
+      }
+      msg.textContent = t.msg_loading || '...';
+      msg.style.color = '#94a3b8';
+      var res = await fetch('/api/create', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slug: slug, targetUrl: targetUrl, splat: splat, password: password, expAmount: expAmount, expUnit: expUnit })
+      });
+      var data = null;
+      try { data = await res.json(); } catch(e) {}
+      if (!res.ok) {
+        errorEl.textContent = '❌ ' + ((data && data.error) || res.status);
+        errorEl.style.display = 'block';
+        msg.textContent = '';
+        if (res.status === 401) setTimeout(logout, 800);
+        return;
+      }
+      msg.textContent = '✅';
+      msg.style.color = '#10b981';
+      showToast((t.msg_ok_link_created || '✅') + ' /' + slug, 'success');
+      setTimeout(function() { closeModals(); loadLinks(); loadStorage(); }, 400);
+    } catch (error) {
+      errorEl.textContent = '❌ ' + (error.message || 'Error');
       errorEl.style.display = 'block';
       msg.textContent = '';
-      if (res.status === 401) setTimeout(logout, 800);
-      return;
+    } finally {
+      btn.disabled = false;
     }
-    msg.textContent = '✅';
-    msg.style.color = '#10b981';
-    showToast((t.msg_ok_link_created || '✅') + ' /' + slug, 'success');
-    setTimeout(function() { closeModals(); loadLinks(); loadStorage(); }, 400);
-  } catch (error) {
-    errorEl.textContent = '❌ ' + (error.message || 'Error');
-    errorEl.style.display = 'block';
-    msg.textContent = '';
-  } finally {
-    btn.disabled = false;
   }
-}
 
   async function saveHub() {
-  var t = currentDict || {};
-  var btn = document.getElementById('btnSaveHub');
-  
-  // Sanitizar el slug
-  var slug = document.getElementById('hubSlug').value.toLowerCase();
-  slug = slug.replace(/[^a-z0-9_\/]/g, '');
-  slug = slug.replace(/^\/+/, '');
-  slug = slug.replace(/\/+/g, '/');
-  slug = slug.replace(/\/+$/, '');
-  document.getElementById('hubSlug').value = slug;
-  
-  var mode = document.getElementById('hubMode').value;
-  var title = document.getElementById('hubTitle').value.trim();
-  var bio = document.getElementById('hubBio').value.trim();
-  var theme_palette = document.getElementById('hubPalette').value;
-  var btn_style = document.getElementById('hubBtnStyle').value;
-  var custom_html = document.getElementById('hubCustomHtml').value;
-  var password = document.getElementById('hubPassword').value;
-  var msg = document.getElementById('hubStatusMsg');
-  var errorEl = document.getElementById('hubModalError');
-  errorEl.style.display = 'none';
-  btn.disabled = true;
-  try {
-    if (!slug) { errorEl.textContent = t.msg_error_slug_required || '❌ Slug requerido'; errorEl.style.display = 'block'; return; }
-    if (!/^[a-z0-9_\/]+$/.test(slug) || slug.startsWith('/') || slug.endsWith('/') || slug.includes('//')) {
-      errorEl.textContent = t.msg_error_slug_format || '❌ Formato inválido';
-      errorEl.style.display = 'block';
-      return;
-    }
-    var items = [];
-    if (mode === 'builder') {
-      var rows = document.querySelectorAll('.hub-item-row');
-      for (var i = 0; i < rows.length; i++) {
-        var row = rows[i];
-        var titl = row.querySelector('.hi-title').value.trim();
-        var type = row.querySelector('.hi-type').value;
-        var u = type === 'gs' ? row.querySelector('.hi-gs-select').value : row.querySelector('.hi-bare-url').value.trim();
-        if (titl && u) items.push({ title: titl, url: u, is_gs: type === 'gs' });
+    var t = currentDict || {};
+    var btn = document.getElementById('btnSaveHub');
+    
+    var slug = document.getElementById('hubSlug').value.toLowerCase();
+    slug = slug.replace(/[^a-z0-9_\/]/g, '');
+    slug = slug.replace(/^\/+/, '');
+    slug = slug.replace(/\/+/g, '/');
+    slug = slug.replace(/\/+$/, '');
+    document.getElementById('hubSlug').value = slug;
+    
+    var mode = document.getElementById('hubMode').value;
+    var title = document.getElementById('hubTitle').value.trim();
+    var bio = document.getElementById('hubBio').value.trim();
+    var theme_palette = document.getElementById('hubPalette').value;
+    var btn_style = document.getElementById('hubBtnStyle').value;
+    var custom_html = document.getElementById('hubCustomHtml').value;
+    var password = document.getElementById('hubPassword').value;
+    var msg = document.getElementById('hubStatusMsg');
+    var errorEl = document.getElementById('hubModalError');
+    errorEl.style.display = 'none';
+    btn.disabled = true;
+    try {
+      if (!slug) { errorEl.textContent = t.msg_error_slug_required || '❌ Slug requerido'; errorEl.style.display = 'block'; return; }
+      if (!/^[a-z0-9_\/]+$/.test(slug) || slug.startsWith('/') || slug.endsWith('/') || slug.includes('//')) {
+        errorEl.textContent = t.msg_error_slug_format || '❌ Formato inválido';
+        errorEl.style.display = 'block';
+        return;
       }
-    }
-    msg.textContent = t.msg_loading || '...';
-    msg.style.color = '#94a3b8';
-    var res = await fetch('/api/save-hub', {
-      method: 'POST',
-      headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ slug: slug, mode: mode, title: title, bio: bio, theme_palette: theme_palette, btn_style: btn_style, custom_html: custom_html, password: password, items: items })
-    });
-    var data = null;
-    try { data = await res.json(); } catch(e) {}
-    if (!res.ok) {
-      errorEl.textContent = '❌ ' + ((data && data.error) || res.status);
-      errorEl.style.display = 'block';
-      msg.textContent = '';
-      if (res.status === 401) setTimeout(logout, 800);
-      return;
-    }
-    msg.textContent = '✅';
-    msg.style.color = '#10b981';
-    showToast((t.msg_ok_hub_created || '✅') + ' /' + slug, 'success');
-    setTimeout(function() { closeModals(); loadLinks(); loadStorage(); }, 400);
-  } catch (error) {
-    errorEl.textContent = '❌ ' + (error.message || 'Error');
-    errorEl.style.display = 'block';
-    msg.textContent = '';
-  } finally {
-    btn.disabled = false;
-  }
-}
+      var items = [];
+      if (mode === 'builder') {
+        var rows = document.querySelectorAll('.hub-item-row');
+        for (var i = 0; i < rows.length; i++) {
+          var row = rows[i];
+          var titl = row.querySelector('.hi-title').value.trim();
+          var type = row.querySelector('.hi-type').value;
+          var u = type === 'gs' ? row.querySelector('.hi-gs-select').value : row.querySelector('.hi-bare-url').value.trim();
+          if (titl && u) items.push({ title: titl, url: u, is_gs: type === 'gs' });
+        }
+      }
       msg.textContent = t.msg_loading || '...';
       msg.style.color = '#94a3b8';
       var res = await fetch('/api/save-hub', {
@@ -997,7 +970,7 @@
         '<td style="font-weight:700; color:#10b981;">/' + l.slug + '</td>' +
         '<td style="color:#94a3b8; font-size:12px; max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">' + l.target_url + '</td>' +
         '<td>' + lockTag + expTag + '</td>' +
-        '<td style="font-weight:800; color:#10b981; font-size:14px;">' + l.clicks + '</td>' +
+        '<td style="font-weight:800; color:#10b981; font-size:14px;">' + (l.clicks || 0) + '</td>' +
         '<td><div class="btn-group">' +
         '<button class="btn-action" onclick="copyUrl(\'' + l.slug + '\', this)">📋</button>' +
         '<button class="btn-action" onclick="editLink(\'' + l.slug + '\')">✏️</button>' +
@@ -1015,7 +988,7 @@
         '<td style="font-weight:700; color:#a5b4fc;">/' + l.slug + '</td>' +
         '<td style="color:#e2e8f0; font-size:12px;">' + (t.label_hub || 'Conjunto') + '</td>' +
         '<td><span class="tag tag-hub">Hub</span> ' + lockTag + '</td>' +
-        '<td style="font-weight:800; color:#10b981; font-size:14px;">' + l.clicks + '</td>' +
+        '<td style="font-weight:800; color:#10b981; font-size:14px;">' + (l.clicks || 0) + '</td>' +
         '<td><div class="btn-group">' +
         '<button class="btn-action" onclick="copyUrl(\'' + l.slug + '\', this)">📋</button>' +
         '<button class="btn-action" onclick="editHub(\'' + l.slug + '\')">✏️</button>' +
