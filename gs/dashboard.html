@@ -691,36 +691,30 @@
 
   function validateSlug(el) {
   var val = el.value.toLowerCase();
-  
-  // Permitir solo: letras, números, guion bajo y barra
-  val = val.replace(/[^a-z0-9_\/]/g, '');
-  
-  // No puede empezar con /
-  val = val.replace(/^\/+/, '');
-  
-  // No puede tener // consecutivos (colapsar a /)
-  val = val.replace(/\/+/g, '/');
-  
-  // No puede terminar con / (esto es lo que pediste)
-  val = val.replace(/\/+$/, '');
-  
-  // Actualizar el input con el valor sanitizado
-  el.value = val;
-  
-  // Contador
   var count = document.getElementById('slugFeedback');
   count.textContent = val.length + ' / ' + appConfig.maxSlugLength;
   
-  // Validar rutas reservadas (solo el primer segmento)
   var reserved = ['gs', 'gs-files', 'favicon.ico', 'favicon.svg', 'robots.txt', 'sitemap.xml'];
   var firstSegment = val.split('/')[0];
+  
+  // Validaciones visuales (sin modificar el input)
   if (reserved.indexOf(firstSegment) !== -1) {
     count.textContent = (currentDict.msg_error_slug_reserved || '¡Ruta reservada!');
     count.style.color = '#ef4444';
+  } else if (val.endsWith('/')) {
+    count.textContent = val.length + ' / ' + appConfig.maxSlugLength + ' ⚠️';
+    count.style.color = '#f59e0b';
+  } else if (val.startsWith('/')) {
+    count.textContent = val.length + ' / ' + appConfig.maxSlugLength + ' ⚠️';
+    count.style.color = '#f59e0b';
+  } else if (val.includes('//')) {
+    count.textContent = val.length + ' / ' + appConfig.maxSlugLength + ' ⚠️';
+    count.style.color = '#f59e0b';
   } else {
     count.style.color = '#64748b';
   }
 }
+
 
   async function genSlugAI() {
     var t = currentDict || {};
@@ -788,81 +782,133 @@
   }
 
   async function saveLink() {
-    var t = currentDict || {};
-    var btn = document.getElementById('btnSaveLink');
-    var slug = document.getElementById('slugInput').value.trim().toLowerCase();
-    var targetUrl = document.getElementById('targetUrl').value.trim();
-    var splat = document.getElementById('splat').checked;
-    var password = document.getElementById('linkPassword').value;
-    var expAmount = document.getElementById('expAmount').value;
-    var expUnit = document.getElementById('expUnit').value;
-    var msg = document.getElementById('linkStatusMsg');
-    var errorEl = document.getElementById('linkModalError');
-    errorEl.style.display = 'none';
-    btn.disabled = true;
-    try {
-      if (!targetUrl) { errorEl.textContent = t.msg_error_url_required || '❌ URL requerida'; errorEl.style.display = 'block'; return; }
-      try { new URL(targetUrl); } catch(e) { errorEl.textContent = t.msg_error_url_invalid || '❌ URL inválida'; errorEl.style.display = 'block'; return; }
-      if (!slug) { errorEl.textContent = t.msg_error_slug_required || '❌ Slug requerido'; errorEl.style.display = 'block'; return; }
-      if (!/^[a-z0-9_]+$/.test(slug)) { errorEl.textContent = t.msg_error_slug_format || '❌ Formato inválido'; errorEl.style.display = 'block'; return; }
-      msg.textContent = t.msg_loading || '...';
-      msg.style.color = '#94a3b8';
-      var res = await fetch('/api/create', {
-        method: 'POST',
-        headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ slug: slug, targetUrl: targetUrl, splat: splat, password: password, expAmount: expAmount, expUnit: expUnit })
-      });
-      var data = null;
-      try { data = await res.json(); } catch(e) {}
-      if (!res.ok) {
-        errorEl.textContent = '❌ ' + ((data && data.error) || res.status);
-        errorEl.style.display = 'block';
-        msg.textContent = '';
-        if (res.status === 401) setTimeout(logout, 800);
-        return;
-      }
-      msg.textContent = '✅';
-      msg.style.color = '#10b981';
-      showToast((t.msg_ok_link_created || '✅') + ' /' + slug, 'success');
-      setTimeout(function() { closeModals(); loadLinks(); loadStorage(); }, 400);
-    } catch (error) {
-      errorEl.textContent = '❌ ' + (error.message || 'Error');
+  var t = currentDict || {};
+  var btn = document.getElementById('btnSaveLink');
+  
+  // Sanitizar el slug
+  var slug = document.getElementById('slugInput').value.toLowerCase();
+  slug = slug.replace(/[^a-z0-9_\/]/g, '');
+  slug = slug.replace(/^\/+/, '');
+  slug = slug.replace(/\/+/g, '/');
+  slug = slug.replace(/\/+$/, '');
+  document.getElementById('slugInput').value = slug;
+  
+  var targetUrl = document.getElementById('targetUrl').value.trim();
+  var splat = document.getElementById('splat').checked;
+  var password = document.getElementById('linkPassword').value;
+  var expAmount = document.getElementById('expAmount').value;
+  var expUnit = document.getElementById('expUnit').value;
+  var msg = document.getElementById('linkStatusMsg');
+  var errorEl = document.getElementById('linkModalError');
+  errorEl.style.display = 'none';
+  btn.disabled = true;
+  try {
+    if (!targetUrl) { errorEl.textContent = t.msg_error_url_required || '❌ URL requerida'; errorEl.style.display = 'block'; return; }
+    try { new URL(targetUrl); } catch(e) { errorEl.textContent = t.msg_error_url_invalid || '❌ URL inválida'; errorEl.style.display = 'block'; return; }
+    if (!slug) { errorEl.textContent = t.msg_error_slug_required || '❌ Slug requerido'; errorEl.style.display = 'block'; return; }
+    if (!/^[a-z0-9_\/]+$/.test(slug) || slug.startsWith('/') || slug.endsWith('/') || slug.includes('//')) {
+      errorEl.textContent = t.msg_error_slug_format || '❌ Formato inválido';
+      errorEl.style.display = 'block';
+      return;
+    }
+    msg.textContent = t.msg_loading || '...';
+    msg.style.color = '#94a3b8';
+    var res = await fetch('/api/create', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ slug: slug, targetUrl: targetUrl, splat: splat, password: password, expAmount: expAmount, expUnit: expUnit })
+    });
+    var data = null;
+    try { data = await res.json(); } catch(e) {}
+    if (!res.ok) {
+      errorEl.textContent = '❌ ' + ((data && data.error) || res.status);
       errorEl.style.display = 'block';
       msg.textContent = '';
-    } finally {
-      btn.disabled = false;
+      if (res.status === 401) setTimeout(logout, 800);
+      return;
     }
+    msg.textContent = '✅';
+    msg.style.color = '#10b981';
+    showToast((t.msg_ok_link_created || '✅') + ' /' + slug, 'success');
+    setTimeout(function() { closeModals(); loadLinks(); loadStorage(); }, 400);
+  } catch (error) {
+    errorEl.textContent = '❌ ' + (error.message || 'Error');
+    errorEl.style.display = 'block';
+    msg.textContent = '';
+  } finally {
+    btn.disabled = false;
   }
+}
 
   async function saveHub() {
-    var t = currentDict || {};
-    var btn = document.getElementById('btnSaveHub');
-    var slug = document.getElementById('hubSlug').value.trim().toLowerCase();
-    var mode = document.getElementById('hubMode').value;
-    var title = document.getElementById('hubTitle').value.trim();
-    var bio = document.getElementById('hubBio').value.trim();
-    var theme_palette = document.getElementById('hubPalette').value;
-    var btn_style = document.getElementById('hubBtnStyle').value;
-    var custom_html = document.getElementById('hubCustomHtml').value;
-    var password = document.getElementById('hubPassword').value;
-    var msg = document.getElementById('hubStatusMsg');
-    var errorEl = document.getElementById('hubModalError');
-    errorEl.style.display = 'none';
-    btn.disabled = true;
-    try {
-      if (!slug) { errorEl.textContent = t.msg_error_slug_required || '❌ Slug requerido'; errorEl.style.display = 'block'; return; }
-      if (!/^[a-z0-9_]+$/.test(slug)) { errorEl.textContent = t.msg_error_slug_format || '❌ Formato inválido'; errorEl.style.display = 'block'; return; }
-      var items = [];
-      if (mode === 'builder') {
-        var rows = document.querySelectorAll('.hub-item-row');
-        for (var i = 0; i < rows.length; i++) {
-          var row = rows[i];
-          var titl = row.querySelector('.hi-title').value.trim();
-          var type = row.querySelector('.hi-type').value;
-          var u = type === 'gs' ? row.querySelector('.hi-gs-select').value : row.querySelector('.hi-bare-url').value.trim();
-          if (titl && u) items.push({ title: titl, url: u, is_gs: type === 'gs' });
-        }
+  var t = currentDict || {};
+  var btn = document.getElementById('btnSaveHub');
+  
+  // Sanitizar el slug
+  var slug = document.getElementById('hubSlug').value.toLowerCase();
+  slug = slug.replace(/[^a-z0-9_\/]/g, '');
+  slug = slug.replace(/^\/+/, '');
+  slug = slug.replace(/\/+/g, '/');
+  slug = slug.replace(/\/+$/, '');
+  document.getElementById('hubSlug').value = slug;
+  
+  var mode = document.getElementById('hubMode').value;
+  var title = document.getElementById('hubTitle').value.trim();
+  var bio = document.getElementById('hubBio').value.trim();
+  var theme_palette = document.getElementById('hubPalette').value;
+  var btn_style = document.getElementById('hubBtnStyle').value;
+  var custom_html = document.getElementById('hubCustomHtml').value;
+  var password = document.getElementById('hubPassword').value;
+  var msg = document.getElementById('hubStatusMsg');
+  var errorEl = document.getElementById('hubModalError');
+  errorEl.style.display = 'none';
+  btn.disabled = true;
+  try {
+    if (!slug) { errorEl.textContent = t.msg_error_slug_required || '❌ Slug requerido'; errorEl.style.display = 'block'; return; }
+    if (!/^[a-z0-9_\/]+$/.test(slug) || slug.startsWith('/') || slug.endsWith('/') || slug.includes('//')) {
+      errorEl.textContent = t.msg_error_slug_format || '❌ Formato inválido';
+      errorEl.style.display = 'block';
+      return;
+    }
+    var items = [];
+    if (mode === 'builder') {
+      var rows = document.querySelectorAll('.hub-item-row');
+      for (var i = 0; i < rows.length; i++) {
+        var row = rows[i];
+        var titl = row.querySelector('.hi-title').value.trim();
+        var type = row.querySelector('.hi-type').value;
+        var u = type === 'gs' ? row.querySelector('.hi-gs-select').value : row.querySelector('.hi-bare-url').value.trim();
+        if (titl && u) items.push({ title: titl, url: u, is_gs: type === 'gs' });
       }
+    }
+    msg.textContent = t.msg_loading || '...';
+    msg.style.color = '#94a3b8';
+    var res = await fetch('/api/save-hub', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ slug: slug, mode: mode, title: title, bio: bio, theme_palette: theme_palette, btn_style: btn_style, custom_html: custom_html, password: password, items: items })
+    });
+    var data = null;
+    try { data = await res.json(); } catch(e) {}
+    if (!res.ok) {
+      errorEl.textContent = '❌ ' + ((data && data.error) || res.status);
+      errorEl.style.display = 'block';
+      msg.textContent = '';
+      if (res.status === 401) setTimeout(logout, 800);
+      return;
+    }
+    msg.textContent = '✅';
+    msg.style.color = '#10b981';
+    showToast((t.msg_ok_hub_created || '✅') + ' /' + slug, 'success');
+    setTimeout(function() { closeModals(); loadLinks(); loadStorage(); }, 400);
+  } catch (error) {
+    errorEl.textContent = '❌ ' + (error.message || 'Error');
+    errorEl.style.display = 'block';
+    msg.textContent = '';
+  } finally {
+    btn.disabled = false;
+  }
+}
       msg.textContent = t.msg_loading || '...';
       msg.style.color = '#94a3b8';
       var res = await fetch('/api/save-hub', {
