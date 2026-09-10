@@ -48,10 +48,17 @@ export function genRandomSlug(len = 6, mode = "alphanumeric") {
 
 export function validateSlugFormat(slug) {
   if (!slug) return false;
-  return /^[a-z0-9_]+$/.test(slug);
+  // Solo letras, números, guion bajo y barra
+  if (!/^[a-z0-9_\/]+$/.test(slug)) return false;
+  // No puede empezar ni terminar con /
+  if (slug.startsWith("/") || slug.endsWith("/")) return false;
+  // No puede tener // consecutivos
+  if (slug.includes("//")) return false;
+  // No puede tener segmentos vacíos
+  if (slug.split("/").some(s => s.length === 0)) return false;
+  return true;
 }
 
-// ✅ Solo escribe en Analytics Engine, NO toca D1
 export function recordAnalytics(ctx, env, slug, req) {
   const country = req.cf?.country || "XX";
   const ua = req.headers.get("user-agent") || "N/A";
