@@ -1,228 +1,228 @@
-GREENSHORT (GS)
+# GreenShort
 
-A modern URL shortener built with Cloudflare Pages, D1 Database and Analytics Engine.
+Self-hosted URL shortener that runs entirely on Cloudflare.
+No servers, no external databases, no dependencies.
+Everything lives inside your Cloudflare account using Pages, D1,
+Workers AI, Analytics Engine, and optionally KV.
 
-FEATURES
 
-URL shortening with custom or auto-generated slugs
-AI-powered slug generation using Workers AI
-Link Hubs to group multiple links
-Password protection for links and hubs
-Link expiration with "Never expires" option
-Analytics with Analytics Engine (does not fill D1)
-Real-time click flow (country, referrer, user-agent)
-Modern interface with dark mode and gradients
-Multi-language support (Spanish, English, Russian, Simplified Chinese, Traditional Chinese)
-Responsive for mobile and desktop
-Multi-select for batch delete
-Automatic bot detection
+---
 
-QUICK START (FORK)
+## What is GreenShort?
 
-1. Fork this repository:
-   https://github.com/quasvx/GreenShort/fork
+GreenShort is a URL shortener with an admin dashboard, designed
+to be deployed in minutes and operated with zero maintenance.
+It generates short links, builds link-in-bio style hubs, tracks
+clicks with analytics, and offers password and captcha protection.
+The frontend, backend, and database all run inside Cloudflare.
 
-2. Create the D1 database:
-   npx wrangler d1 create greenshort-db
-   Note the database_id that is returned.
+It is built for people who want their own shortener without relying
+on third-party services, without paying subscriptions, and without
+worrying about servers. You only need a Cloudflare account, a domain
+(or the free Pages subdomain), and to follow the setup steps.
 
-3. Create the Analytics Engine dataset:
-   In Cloudflare Dashboard -> Workers & Pages -> Analytics Engine -> Create dataset:
-   Name: greenshort
 
-4. Configure environment variables:
-   In Cloudflare Pages -> Settings -> Environment Variables:
+---
 
-   SITE_TOKEN           = your_secret_token       (Dashboard access token)
-   CF_ACCOUNT_ID        = your_account_id         (Cloudflare Account ID)
-   CF_D1_ID             = your_d1_id              (D1 database ID)
-   CF_API_TOKEN         = your_api_token          (Cloudflare API token)
-   MAX_SLUG_LENGTH      = 20                      (Maximum slug length)
-   MAX_EXPIRATION_DAYS  = 365                     (Maximum expiration days)
-   AI_MODEL             = (your workers ai model, id recommend @cf/moonshot-ai/kimi-k2.5)  
+## Features
 
-5. Configure bindings:
-   In Cloudflare Pages -> Settings -> Functions:
+**Short links**
+Create links with a custom or random slug.
+Supports nested routes like `my_brand/promo/summer`.
+Each link can point to its own destination URL.
 
-   D1 Database:
-     Variable name: DB
-     D1 Database: greenshort-db
+**Link hubs (link-in-bio)**
+Design link-in-bio style pages with multiple buttons, title, bio,
+and color palette. Perfect for Instagram, TikTok, or any profile
+where you want to group several destinations.
 
-   Analytics Engine:
-     Variable name: ANALYTICS
-     Dataset: greenshort
+**AI-generated slugs**
+Enter a URL and GreenShort analyzes the page content (title and
+description) to suggest a short, descriptive, and unique slug.
+Uses Workers AI, with no extra cost beyond your free quota.
 
-   Workers AI:
-     Variable name: AI
+**Built-in captcha**
+Any link or hub can require a dynamically generated captcha.
+It does not depend on Google reCAPTCHA or any external service.
+It is a custom visual challenge, signed with HMAC and validated
+with a secure cookie.
 
-6. Deploy:
-   npx wrangler pages deploy .
-   Or connect your forked repository to Cloudflare Pages for automatic deployment.
+**Password protection**
+You can protect any link or hub with a password.
+Visitors must enter it before reaching the destination.
 
-PROJECT STRUCTURE
+**Link expiration**
+Configure how long a link stays active: minutes, hours, days, or
+"never". Once expired, the link stops working automatically.
 
-GreenShort/
-├── functions/
-│   ├── [[path]].js          # Main router (API + link resolution)
-│   └── lib.js               # Shared utilities (DB, auth, analytics)
-├── gs/
-│   ├── dashboard.html       # Admin panel
-│   ├── password.html        # Password gate
-│   └── hub.html             # Hub landing page
-└── gs-files/
-    └── locales/             # Translations
-        ├── es_es.json
-        ├── en_us.json
-        ├── ru_ru.json
-        ├── zh_cn.json
-        └── zh_tw.json
+**Splat subroutes**
+A link can capture everything that comes after the slug and pass
+it to the destination. For example, `/promo/summer/discount` can
+forward `/discount` to the target URL.
 
-GETTING THE CREDENTIALS
+**Click analytics**
+Every visit is recorded with country, user agent, referrer, IP,
+and timestamp. View the data in the Analytics tab or the Click
+Flow tab inside the dashboard.
 
-CF_ACCOUNT_ID
-1. Go to Cloudflare Dashboard (dash.cloudflare.com)
-2. Copy the Account ID from the right sidebar
+**Storage usage indicator**
+The header shows how much of your D1 database is used, in real
+time, with a selectable unit (Auto, B, KB, MB, GB, TB, PB, EB,
+ZB, YB).
 
-CF_D1_ID
-1. Go to Workers & Pages -> D1
-2. Click on your database
-3. Copy the Database ID
+**Multi-language dashboard**
+The admin interface supports Spanish, English, Russian, Simplified
+Chinese, and Traditional Chinese. Language is stored locally per
+user.
 
-CF_API_TOKEN
-1. Go to My Profile -> API Tokens -> Create Token
-2. Create a token with these permissions:
-   - Account -> D1 -> Edit
-   - Account -> Account Analytics -> Read
-3. Copy the token (it is only shown once)
+**Dark theme**
+The entire dashboard uses a dark, minimal design with green
+accents, optimized for both desktop and mobile.
 
-USAGE
 
-Access the panel
-1. Open https://yourdomain.com/gs/dashboard
-2. Enter your SITE_TOKEN
+---
 
-Create a link
-1. Click on + Link
-2. Fill in:
-   - Slug: Custom (optional)
-   - Destination URL: The URL to shorten
-   - Password: (Optional)
-   - Expiration: (Optional, supports "Never expires")
-3. You can generate the slug in 3 ways:
-   - Manual
-   - Random (custom length, any value between 3 and MAX_SLUG_LENGTH)
-   - Generate with AI (analyzes the URL and proposes an ASCII slug)
+## How it works
 
-Create a hub
-1. Click on + Hub
-2. Configure title, bio, palette and links
-3. It can have its own password
+GreenShort runs as a single Cloudflare Pages project with a
+catch-all Worker that handles every request.
 
-API ENDPOINTS
+When someone visits a URL, the Worker checks if it matches a
+stored slug. If it does, it applies the corresponding rules
+(password, captcha, expiration, splat) and redirects to the
+destination. If it does not match, it falls through to the
+static files served by Pages.
 
-All require authentication with header Authorization: Bearer <SITE_TOKEN>.
+All data is stored in a Cloudflare D1 database: one table for
+links and one for hub configurations. Clicks are recorded in
+Analytics Engine, which is queried via the Cloudflare API to
+display statistics in the dashboard.
 
-GET  /api/config                    Configuration (limits)
-GET  /api/storage                   D1 usage
-GET  /api/links                     List links + clicks from Analytics Engine
-GET  /api/hub-config?slug=xxx       Hub configuration
-POST /api/ai-slug                   Generate slug with AI
-POST /api/create                    Create/update link
-POST /api/save-hub                  Save hub
-POST /api/delete                    Delete (one or many)
-GET  /api/analytics                 Latest 150 visits
-GET  /api/flow                      Click flow with filters
+The admin dashboard authenticates using a single token
+(`SITE_TOKEN`), stored in an environment variable.
+All API requests require this token as a Bearer header.
 
-DATABASE
 
-Table links
-slug TEXT PRIMARY KEY,
-type TEXT DEFAULT 'direct',  -- 'direct' or 'group'
-target_url TEXT,
-splat INTEGER DEFAULT 1,
-password TEXT,
-expires_at INTEGER,
-created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+---
 
-Table hub_configs
-slug TEXT PRIMARY KEY,
-mode TEXT DEFAULT 'builder',
-title TEXT,
-bio TEXT,
-theme_palette TEXT,
-btn_style TEXT,
-bg_type TEXT,
-bg_val TEXT,
-custom_html TEXT,
-lang_mode TEXT DEFAULT 'auto',
-items_json TEXT
+## Requirements
 
-Note: There is no analytics table because events are stored in Analytics Engine.
+Before deploying, make sure you have:
 
-SLUG RULES
+- A Cloudflare account (free plan is enough for most use cases).
+- A Cloudflare Pages project.
+- A D1 database bound to the Pages project.
+- A Workers AI binding (free tier includes a generous daily quota).
+- An Analytics Engine dataset (optional but recommended for
+  click tracking).
+- The following environment variables configured in Pages:
+  - `SITE_TOKEN` - the admin password (minimum 8 characters).
+  - `CF_ACCOUNT_ID` - your Cloudflare account ID.
+  - `CF_D1_ID` - the D1 database ID.
+  - `CF_API_TOKEN` - an API token with permissions to read D1
+    and query Analytics Engine.
+  - `MAX_SLUG_LENGTH` - optional, defaults to `20`.
+  - `MAX_EXPIRATION_DAYS` - optional, defaults to `365`.
+  - `AI_MODEL` - optional, the Workers AI model to use for
+    slug generation.
 
-- Only lowercase letters (a-z), numbers (0-9) and underscores (_)
-- Length controlled by MAX_SLUG_LENGTH env variable
-- Reserved slugs: favicon.ico, favicon.svg, robots.txt, sitemap.xml, gs, gs-files
 
-ADDING A LANGUAGE
+---
 
-1. Copy gs-files/locales/es_es.json to gs-files/locales/xx_xx.json
-2. Translate the values
-3. Add the option in the language selector of the dashboard and password
+## Recommended AI model
 
-SECURITY
+For the best balance between speed, quality, and cost, the
+recommended model is:
 
-- HTTPS required
-- Access token stored in localStorage
-- Slug format validation ([a-z0-9_])
-- Protected reserved routes
-- Bot detection
-- Rate limiting by Cloudflare
+    @cf/moonshot-ai/kimi-k2.5
 
-Recommendations:
-- Rotate SITE_TOKEN periodically
-- Use strong passwords for protected links
-- Do not share CF_API_TOKEN
+This model produces clean, short, and contextually accurate slugs.
+It is fast, reliable, and works well within the free Workers AI
+quota for typical usage.
 
-TROUBLESHOOTING
+If you want to try alternatives, any instruct model available in
+Workers AI will work, but results may vary in length and
+formatting. The system already sanitizes and truncates output,
+so any model will produce a usable slug, but Kimi K2.5 tends to
+require fewer corrections.
 
-Error 500 on /api/analytics or /api/flow
-- Verify that the ANALYTICS binding is configured
-- Verify that CF_ACCOUNT_ID and CF_API_TOKEN are configured
-- The token must have Account Analytics Read permission
+To configure it, set the environment variable:
 
-Error 500 on /api/ai-slug
-- Verify that the AI binding is configured
-- Check that the AI_MODEL exists in Workers AI
-- Recommended models: @cf/meta/llama-3.3-70b-instruct-fp8-fast, @cf/qwen/qwen3-30b-a3b-fp8
+    AI_MODEL = @cf/moonshot-ai/kimi-k2.5
 
-"No such model" in AI
-- Switch to a valid model
-- Models change over time, check Cloudflare Workers AI Models
+If you do not set this variable, GreenShort falls back to a
+default model automatically.
 
-Bad AI slug quality
-- Use a larger model (avoid llama-3.2-1b-instruct)
-- Recommended: @cf/meta/llama-3.3-70b-instruct-fp8-fast
 
-Clicks do not appear
-- Analytics Engine takes ~1 minute to process events
-- Verify that the ANALYTICS binding has dataset greenshort
+---
 
-DEPENDENCIES
+## Reserved routes
 
-- Cloudflare Pages - Hosting
-- D1 Database - SQLite for configuration
-- Analytics Engine - Metrics
-- Workers AI - Slug generation
-- No external dependencies - All native to Cloudflare
+The following routes are reserved by the system and cannot be
+used as slugs:
 
-LICENSE
+- `favicon.ico`
+- `favicon.svg`
+- `robots.txt`
+- `sitemap.xml`
+- `gs`
+- `gs-files`
+- `api`
 
-MIT License
+Any slug starting with an underscore (`_`) is also reserved,
+following Cloudflare Pages conventions. The dashboard and API
+both validate this, so you cannot create a slug that would
+break the system.
 
-AUTHOR
+The `gs` folder contains all the HTML files for the dashboard
+and public pages. The `gs-files` folder contains static assets
+like locales and images. Both are served directly by Pages and
+never intercepted by the Worker's link resolution logic.
 
-quasvx - github.com/quasvx
 
-If you like the project, give it a star on GitHub.
+---
+
+## Security
+
+GreenShort is designed with security in mind:
+
+- The admin dashboard uses a single token, stored only in
+  localStorage after login.
+- All API endpoints require the token as a Bearer header.
+- Captchas are signed with HMAC using a per-link secret.
+- Password-protected links compare passwords server-side.
+- Captcha cookies are HttpOnly, Secure, and SameSite=Strict.
+- Reserved routes are validated both on the frontend and the
+  backend, so a user cannot create a link that would shadow
+  internal routes.
+
+The only thing you should never do is expose your `SITE_TOKEN`
+publicly. Treat it like a password.
+
+
+---
+
+## Deployment summary
+
+1. Fork or clone the repository.
+2. Create a Cloudflare Pages project linked to the repository.
+3. Create a D1 database and bind it to the Pages project as `DB`.
+4. Create an Analytics Engine dataset named `greenshort` and
+   bind it as `ANALYTICS`.
+5. Add a Workers AI binding as `AI`.
+6. Set the environment variables listed above.
+7. Deploy. The first request will run the database migrations
+   automatically.
+8. Visit `/gs/dashboard` and log in with your `SITE_TOKEN`.
+
+That is it. No build step, no external services, no maintenance.
+
+
+---
+
+## License
+
+GreenShort is open source. Check the repository for the exact
+license terms.
+
+Source: github.com/quasvx/GreenShort
