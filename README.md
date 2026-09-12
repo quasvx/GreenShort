@@ -39,7 +39,7 @@ QUICK START (FORK)
    CF_API_TOKEN         = your_api_token          (Cloudflare API token)
    MAX_SLUG_LENGTH      = 20                      (Maximum slug length)
    MAX_EXPIRATION_DAYS  = 365                     (Maximum expiration days)
-   AI_MODEL             = @cf/meta/llama-3.3-70b-instruct-fp8-fast  (Optional)
+   AI_MODEL             = (your workers ai model, id recommend @cf/moonshot-ai/kimi-k2.5)  
 
 5. Configure bindings:
    In Cloudflare Pages -> Settings -> Functions:
